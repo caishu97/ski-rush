@@ -1,57 +1,108 @@
-# Agent Templates
+# ⛷️ 极速滑雪 - Ski Rush Adventure
 
-177 production-ready `SOUL.md` templates across 24 categories.
-
-## Quick Start
-
-```bash
-# Copy any SOUL.md to your agent
-cp agents/productivity/orion/SOUL.md ~/my-agent/agents/orion/SOUL.md
-openclaw agents add --agent orion
-openclaw start
-```
-
-## Categories
-
-| Category | Agents | |
-|----------|--------|-|
-| Automation | 6 | [Browse](automation/) |
-| Business | 12 | [Browse](business/) |
-| Compliance | 4 | [Browse](compliance/) |
-| Creative | 9 | [Browse](creative/) |
-| Customer Success | 2 | [Browse](customer-success/) |
-| Data | 10 | [Browse](data/) |
-| Development | 18 | [Browse](development/) |
-| DevOps | 10 | [Browse](devops/) |
-| E-Commerce | 6 | [Browse](ecommerce/) |
-| Education | 8 | [Browse](education/) |
-| Finance | 15 | [Browse](finance/) |
-| Freelance | 3 | [Browse](freelance/) |
-| Healthcare | 7 | [Browse](healthcare/) |
-| HR | 7 | [Browse](hr/) |
-| Legal | 6 | [Browse](legal/) |
-| Marketing | 22 | [Browse](marketing/) |
-| Moltbook | 3 | [Browse](moltbook/) |
-| Personal | 7 | [Browse](personal/) |
-| Productivity | 7 | [Browse](productivity/) |
-| Real Estate | 5 | [Browse](real-estate/) |
-| SaaS | 5 | [Browse](saas/) |
-| Security | 6 | [Browse](security/) |
-| Supply Chain | 3 | [Browse](supply-chain/) |
-| Voice | 3 | [Browse](voice/) |
-
-## Skip the setup. Deploy in 60 seconds.
-
-**[Browse all 177 templates with one-click deploy](https://crewclaw.com/agents?utm_source=github&utm_medium=agents_readme&utm_campaign=browse)**
-
-Pick a template, customize it, and get a full deploy package (SOUL.md + Dockerfile + bot scripts + setup guide) in 60 seconds. No terminal required.
-
-**[Get your deploy package →](https://crewclaw.com/create-agent?utm_source=github&utm_medium=agents_readme&utm_campaign=deploy)**
+> **"这是 xiaoyi 用 AI 编程做的第一个游戏！"** 🎮✨
 
 ---
 
-## Built your own agent?
+## 🏔️ 游戏简介
 
-Submit it to the registry. Your agent gets listed here and on [crewclaw.com/agents](https://crewclaw.com/agents?utm_source=github&utm_medium=agents_readme&utm_campaign=submit).
+欢迎来到《极速滑雪》！这是一款从俯视角滑行的无尽跑酷小游戏。玩家扮演一位卡通滑雪者，在越来越危险的雪道上飞驰，躲避树木和石头，积攒经验值解锁更高级的赛道和装备。
 
-**[Submit via PR →](../CONTRIBUTING.md)** · **[Submit via Issue →](https://github.com/mergisi/awesome-openclaw-agents/issues/new?template=agent-submission.md)**
+**游戏完全由 xiaoyi 借助 AI 编程助手协作开发完成，是我踏上游戏开发之路的第一步！**
+
+---
+
+## 🎮 玩法说明
+
+### 操作方式
+
+| 功能 | 键盘 | 移动端 |
+|------|------|--------|
+| **左右转向** | `←` `→` 或 `A` `D` | 点击屏幕左右半区 |
+| **加速** | `↑` 上方向键 | 按住右下角 ⏩ 按钮 |
+| **技能** | `Space` 空格键 | 点击底部技能按钮 |
+| **暂停** | `Esc` 或 `P` | — |
+
+### 游戏规则
+
+- 🌲 **撞上障碍物 → 直接结束滑行**
+- ⭐ **1km = 1 XP**（经验值），XP 是唯一货币
+- 🏔️ **用 XP 解锁赛道**：8 条赛道，从新手雪道到神话雪道
+- 👕 **用 XP 买滑雪服**：7 套不同等级的滑雪服，经验加成从 0% 到 +1100%
+- 🧙 **技能小人**：4 个独特技能，冷却 10 秒，统一按空格触发
+- ⚠️ **离开雪道**：每 10 秒扣 1 XP
+
+---
+
+## 🧙 技能小人（4个任选其一）
+
+| 图标 | 技能 | 效果 | 持续 |
+|:---:|------|------|:---|
+| 🔴 | **无畏冲刺** | 免疫碰撞 + 速度翻倍 | 3s |
+| 🔵 | **急冻术** | 冻结移动障碍 + 免疫冰面 | 5s |
+| 🟢 | **幽灵形态** | 碰撞体积减半 | 5s |
+| 🟡 | **经验加速** | XP 获取翻倍 | 8s |
+
+---
+
+## 🏔️ 赛道系统
+
+- **1~5 级**：障碍**数量**越来越多，雪道越来越窄
+- **5 级以后**：障碍**难度**越来越高（移动障碍更快、冰面更多）
+
+---
+
+## 🛠️ 技术栈
+
+- **纯前端 Vanilla JS** + HTML5 Canvas
+- 零依赖，开箱即玩
+- 数据保存在浏览器 `localStorage`
+- 支持桌面端键盘 + 移动端触屏
+
+---
+
+## 🌐 在线游玩
+
+👉 **https://caishu97.github.io/ski-rush/**
+
+直接浏览器打开即可，无需安装！
+
+---
+
+## 📝 开发故事
+
+> 这是 **xiaoyi** 借助 AI 编程助手完成的第一个游戏项目。
+> 
+> 从最初 "做一个滑雪游戏" 的想法，到一步步实现赛道系统、XP 经济、技能小人、动态难度……每一步都在和 AI 一起拆解需求、调试代码、优化体验。
+> 
+> 如果你也在学习编程或想做自己的小项目，不妨试试——**用 AI 当搭档，你比想象中更能做！**
+
+---
+
+## 🎨 核心文件一览
+
+```
+ski-game/
+├── index.html          # 主入口页面
+├── css/
+│   └── style.css       # 全部 UI 样式
+└── js/
+    ├── constants.js    # 游戏配置（赛道/滑雪服/技能）
+    ├── storage.js      # 本地存档管理
+    ├── utils.js        # 工具函数与碰撞检测
+    ├── player.js       # 玩家对象与角色绘制
+    ├── world.js        # 地图生成器与障碍物
+    ├── game.js         # 核心游戏循环
+    ├── ui.js           # 菜单、商店、HUD 交互
+    └── main.js         # 入口初始化
+```
+
+---
+
+## 🏅 特别鸣谢
+
+感谢 AI 编程助手一路陪伴完成这个作品——从第一个 `index.html` 到最后的 GitHub Pages 部署，每一个像素都凝聚了人和 AI 的协作！
+
+---
+
+*Made with ❤️ by xiaoyi + AI*
