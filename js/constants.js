@@ -7,6 +7,16 @@ const CONSTANTS = {
     CANVAS_WIDTH: 800,
     CANVAS_HEIGHT: 1200,
 
+    // 伪 3D 投影参数
+    PSEUDO_3D: {
+        CAMERA_HEIGHT: 110,        // 摄像机离地面高度（世界单位）
+        CAMERA_DISTANCE: 180,      // 摄像机在玩家后方距离（世界单位）
+        FOCAL_LENGTH: 580,         // 焦距，控制视野宽窄
+        DRAW_DISTANCE: 9000,       // 最大绘制距离
+        SEGMENT_LENGTH: 150,       // 道路分段长度
+        ROAD_TOP_Y_RATIO: 0.38,    // 地平线占屏幕高度比例（相对顶部）
+    },
+
     // 物理参数
     BASE_SPEED: 150,
     MAX_SPEED: 600,
@@ -22,11 +32,11 @@ const CONSTANTS = {
     XP_PER_KM: 1,
     OFFROAD_XP_PENALTY_CD: 10,
 
-    // 障碍尺寸
-    TREE_WIDTH: 40,
-    TREE_HEIGHT: 50,
-    ROCK_WIDTH: 30,
-    ROCK_HEIGHT: 24,
+    // 障碍尺寸（世界单位）
+    TREE_WIDTH: 34,
+    TREE_HEIGHT: 48,
+    ROCK_WIDTH: 26,
+    ROCK_HEIGHT: 20,
 
     // 滑雪服 — 用 XP 购买
     OUTFITS: [

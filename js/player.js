@@ -35,26 +35,18 @@ class Player {
         this.trailTimer = 0;
     }
 
-    /**
-     * 更新玩家状态
-     * @param {number} dt 时间增量(秒)
-     * @param {Object} input 输入状态 { left, right, boost, analogX }
-     * @param {Object} track 当前赛道配置
-     */
     update(dt, input, track) {
         if (this.stunned) {
             this.stunTimer -= dt;
             if (this.stunTimer <= 0) {
                 this.stunned = false;
             }
-            return; // 眩晕时不可控
+            return;
         }
 
-        // === 纵向速度 ===
         const targetSpeed = this.boosting ? this.boostSpeed : this.baseSpeed;
         let accel = CONSTANTS.ACCELERATION;
 
-        // 冲出雪道 - 大幅减速
         const halfTrack = track.width / 2;
         this.offRoad = Math.abs(this.x) > halfTrack;
         if (this.offRoad) {
@@ -68,20 +60,17 @@ class Player {
         }
         this.currentSpeed = Math.max(0, this.currentSpeed);
 
-        // === 横向移动 ===
         let targetVx = 0;
         if (input.analogX !== undefined && input.analogX !== 0) {
-            // 使用摇杆模拟量
             targetVx = input.analogX * CONSTANTS.TURN_SPEED;
         } else {
             if (input.left) targetVx = -CONSTANTS.TURN_SPEED;
             if (input.right) targetVx = CONSTANTS.TURN_SPEED;
         }
 
-        // 冰面或冲出雪道时操控性下降
         let turnFactor = 1.0;
         if (this.offRoad) turnFactor = 0.3;
-        if (input.onIce) turnFactor *= 0.5; // 冰面额外减速
+        if (input.onIce) turnFactor *= 0.5;
 
         const turnAccel = CONSTANTS.TURN_ACCEL * turnFactor;
         if (this.vx < targetVx) {
@@ -94,7 +83,6 @@ class Player {
 
         this.x += this.vx * dt;
 
-        // 模糊边界 - 出界太多时硬拉回，并减速
         if (this.x < -halfTrack - 100) {
             this.x = -halfTrack - 100;
             this.vx = 0;
@@ -104,23 +92,16 @@ class Player {
             this.vx = 0;
         }
 
-        // === y 轴前进 ===
         this.y -= this.currentSpeed * dt;
 
-        // === 动画 ===
         if (this.vx !== 0) {
             this.swayAngle += 4 * dt;
         } else {
             this.swayAngle *= 0.9;
         }
-
-        // 滑雪痕迹
         this.trailTimer += dt;
     }
 
-    /**
-     * 碰撞处理
-     */
     crash() {
         if (this.stunned) return;
         this.stunned = true;
@@ -129,10 +110,195 @@ class Player {
         this.vx *= 0.3;
     }
 
+    // ========================= 伪 3D 渲染 =========================
+
     /**
-     * 绘制卡通人物（世界坐标）
-     * @param {CanvasRenderingContext2D} ctx
+     * 玩家在伪3D场景中绘制
+     * @param {number} screenX - 屏幕X坐标（画布中央）
+     * @param {number} screenY - 屏幕Y坐标（底部）
      */
+    draw3D(ctx, screenX, screenY, screenW, track, camX, camY, horizonY) {
+        const tilt = Math.sin(this.swayAngle) * 0.12;
+        const lean = this.vx / CONSTANTS.TURN_SPEED; // -1 ~ 1
+
+        ctx.save();
+        ctx.translate(screenX, screenY);
+
+        if (this.stunned) {
+            ctx.rotate(Math.sin(Date.now() / 120) * 0.25);
+            ctx.globalAlpha = 0.7;
+        }
+
+        // 技能光环
+        if (this.skillActive) {
+            const pulse = Math.sin(Date.now() / 80) * 0.15 + 0.85;
+            const color = this.getSkillColor();
+            ctx.save();
+            ctx.fillStyle = color;
+            ctx.globalAlpha = pulse * 0.2;
+            ctx.beginPath();
+            ctx.ellipse(0, 18, 32, 10, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        const scale = 1.1;
+        ctx.scale(scale, scale);
+
+        // 滑雪痕迹（ trails ）由摄像机和玩家相对位置投射到底部梯形中不好做，略去
+        // 或者简单画两个雪痕在后面
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        if (this.currentSpeed > 30) {
+            ctx.beginPath();
+            ctx.ellipse(-10 + lean * 4, 32, 5, 2, tilt * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(10 + lean * 4, 32, 5, 2, tilt * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.rotate(tilt + lean * 0.15);
+
+        // === 滑雪板 ===
+        ctx.fillStyle = '#5D4037';
+        // 左板
+        this._roundRect(ctx, -22, 24, 7, 32, 3);
+        ctx.fill();
+        // 右板
+        this._roundRect(ctx, 15, 24, 7, 32, 3);
+        ctx.fill();
+        // 板尖红
+        ctx.fillStyle = '#E74C3C';
+        this._roundRect(ctx, -22, 24, 7, 10, 3);
+        ctx.fill();
+        this._roundRect(ctx, 15, 24, 7, 10, 3);
+        ctx.fill();
+
+        // === 腿部 ===
+        ctx.fillStyle = '#455A64';
+        this._roundRect(ctx, -14, 10, 8, 20, 3);
+        ctx.fill();
+        this._roundRect(ctx, 6, 10, 8, 20, 3);
+        ctx.fill();
+
+        // === 身体 ===
+        ctx.save();
+        ctx.translate(lean * 3, 0);
+        ctx.fillStyle = this.outfit.colorBody;
+        this._roundRect(ctx, -14, -12, 28, 24, 6);
+        ctx.fill();
+
+        // === 手臂 ===
+        ctx.strokeStyle = this.outfit.colorBody;
+        ctx.lineWidth = 6;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(-12, -4);
+        ctx.lineTo(-28, -2 + lean * 6);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(12, -4);
+        ctx.lineTo(28, -2 + lean * 6);
+        ctx.stroke();
+
+        // 手套
+        ctx.fillStyle = '#5D4037';
+        ctx.beginPath();
+        ctx.arc(-28, -2 + lean * 6, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(28, -2 + lean * 6, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // === 头部 ===
+        // 围巾
+        ctx.fillStyle = this.outfit.colorScarf;
+        this._roundRect(ctx, -12, -26, 24, 10, 4);
+        ctx.fill();
+        if (this.currentSpeed > 100) {
+            ctx.beginPath();
+            ctx.moveTo(10, -20);
+            ctx.quadraticCurveTo(22 + this.currentSpeed / 18, -16, 18 + this.currentSpeed / 14, -8);
+            ctx.lineTo(10, -18);
+            ctx.fill();
+        }
+
+        // 脸
+        ctx.fillStyle = '#FFCCBC';
+        ctx.beginPath();
+        ctx.arc(0, -40, 16, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 眼睛
+        ctx.fillStyle = '#333';
+        ctx.beginPath();
+        ctx.arc(-5, -42, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(5, -42, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 腮红
+        ctx.fillStyle = 'rgba(255,100,100,0.3)';
+        ctx.beginPath();
+        ctx.arc(-9, -38, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(9, -38, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 嘴
+        ctx.strokeStyle = '#C0392B';
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.arc(0, -34, 5, 0.15, Math.PI - 0.15);
+        ctx.stroke();
+
+        // 帽子
+        ctx.fillStyle = this.outfit.colorBody;
+        ctx.beginPath();
+        ctx.arc(0, -50, 15, Math.PI, 0);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(0, -50, 15, Math.PI, Math.PI * 2);
+        ctx.fill();
+
+        // 帽球
+        ctx.fillStyle = '#ECEFF1';
+        ctx.beginPath();
+        ctx.arc(0, -66, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 护目镜（加速时）
+        if (this.currentSpeed > 300) {
+            ctx.fillStyle = '#3498DB';
+            ctx.globalAlpha = 0.55;
+            this._roundRect(ctx, -12, -48, 24, 10, 5);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+
+        ctx.restore(); // 恢复整体 state
+    }
+
+    _roundRect(ctx, x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+    }
+
+    // ========================= 旧 2D 渲染（菜单等复用） =========================
+
     draw(ctx) {
         const x = this.x;
         const y = this.y;
@@ -144,7 +310,6 @@ class Player {
             ctx.globalAlpha = 0.7;
         }
 
-        // 技能激活时的光环效果
         if (this.skillActive) {
             const pulse = Math.sin(Date.now() / 100) * 0.15 + 0.85;
             const color = this.getSkillColor();
@@ -159,48 +324,27 @@ class Player {
 
         const tilt = Math.sin(this.swayAngle) * 0.08;
 
-        // === 滑雪板 ===
         ctx.save();
         ctx.rotate(tilt);
         ctx.fillStyle = "#8d6e63";
-        // 左板
-        ctx.beginPath();
-        ctx.roundRect(-16, 6, 6, 28, 3);
-        ctx.fill();
-        // 右板
-        ctx.beginPath();
-        ctx.roundRect(10, 6, 6, 28, 3);
-        ctx.fill();
-        // 板尖红色
+        this._roundRect(ctx, -16, 6, 6, 28, 3); ctx.fill();
+        this._roundRect(ctx, 10, 6, 6, 28, 3); ctx.fill();
         ctx.fillStyle = "#e74c3c";
-        ctx.beginPath();
-        ctx.roundRect(-16, 6, 6, 8, 3);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.roundRect(10, 6, 6, 8, 3);
-        ctx.fill();
+        this._roundRect(ctx, -16, 6, 6, 8, 3); ctx.fill();
+        this._roundRect(ctx, 10, 6, 6, 8, 3); ctx.fill();
         ctx.restore();
 
-        // === 身体 ===
         ctx.save();
         ctx.rotate(tilt);
-        // 躯干
         ctx.fillStyle = this.outfit.colorBody;
         ctx.beginPath();
         ctx.ellipse(0, -2, 12, 14, 0, 0, Math.PI * 2);
         ctx.fill();
-
-        // 裤子
         ctx.fillStyle = "#34495e";
-        ctx.beginPath();
-        ctx.roundRect(-10, 6, 8, 12, 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.roundRect(2, 6, 8, 12, 2);
-        ctx.fill();
+        this._roundRect(ctx, -10, 6, 8, 12, 2); ctx.fill();
+        this._roundRect(ctx, 2, 6, 8, 12, 2); ctx.fill();
         ctx.restore();
 
-        // === 手臂 ===
         ctx.save();
         ctx.rotate(tilt);
         ctx.strokeStyle = this.outfit.colorBody;
@@ -214,24 +358,16 @@ class Player {
         ctx.moveTo(10, -6);
         ctx.lineTo(22, 2);
         ctx.stroke();
-        // 手套
         ctx.fillStyle = "#5d4037";
         ctx.beginPath();
-        ctx.arc(-22, 2, 3, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.arc(-22, 2, 3, 0, Math.PI * 2); ctx.fill();
         ctx.beginPath();
-        ctx.arc(22, 2, 3, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.arc(22, 2, 3, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
 
-        // === 头部 ===
         ctx.save();
-        // 围巾
         ctx.fillStyle = this.outfit.colorScarf;
-        ctx.beginPath();
-        ctx.roundRect(-10, -24, 20, 6, 3);
-        ctx.fill();
-        // 围巾飘带
+        this._roundRect(ctx, -10, -24, 20, 6, 3); ctx.fill();
         if (this.currentSpeed > 100) {
             ctx.beginPath();
             ctx.moveTo(8, -22);
@@ -239,143 +375,87 @@ class Player {
             ctx.lineTo(8, -18);
             ctx.fill();
         }
-
-        // 脸
         ctx.fillStyle = "#ffccbc";
         ctx.beginPath();
-        ctx.arc(0, -34, 14, 0, Math.PI * 2);
-        ctx.fill();
-
-        // 眼睛
+        ctx.arc(0, -34, 14, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = "#333";
         ctx.beginPath();
-        ctx.arc(-5, -36, 2.5, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.arc(-5, -36, 2.5, 0, Math.PI * 2); ctx.fill();
         ctx.beginPath();
-        ctx.arc(5, -36, 2.5, 0, Math.PI * 2);
-        ctx.fill();
-
-        // 腮红
+        ctx.arc(5, -36, 2.5, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = "rgba(255,100,100,0.3)";
         ctx.beginPath();
-        ctx.arc(-8, -32, 3, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.arc(-8, -32, 3, 0, Math.PI * 2); ctx.fill();
         ctx.beginPath();
-        ctx.arc(8, -32, 3, 0, Math.PI * 2);
-        ctx.fill();
-
-        // 嘴巴
+        ctx.arc(8, -32, 3, 0, Math.PI * 2); ctx.fill();
         ctx.strokeStyle = "#c0392b";
         ctx.lineWidth = 1.5;
         ctx.lineCap = "round";
         ctx.beginPath();
         ctx.arc(0, -30, 4, 0.2, Math.PI - 0.2);
         ctx.stroke();
-
-        // 雪帽
         ctx.fillStyle = this.outfit.colorBody;
         ctx.beginPath();
-        ctx.arc(0, -40, 13, Math.PI, 0);
-        ctx.fill();
-        // 帽球
+        ctx.arc(0, -40, 13, Math.PI, 0); ctx.fill();
         ctx.fillStyle = "#ecf0f1";
         ctx.beginPath();
-        ctx.arc(0, -53, 5, 0, Math.PI * 2);
-        ctx.fill();
-
-        // 护目镜（加速时）
+        ctx.arc(0, -53, 5, 0, Math.PI * 2); ctx.fill();
         if (this.currentSpeed > 300) {
             ctx.fillStyle = "#3498db";
             ctx.globalAlpha = 0.6;
-            ctx.beginPath();
-            ctx.roundRect(-11, -39, 22, 8, 4);
-            ctx.fill();
+            this._roundRect(ctx, -11, -39, 22, 8, 4); ctx.fill();
             ctx.globalAlpha = 1;
         }
-
         ctx.restore();
-
-        ctx.restore(); // 恢复整体 state（stun rotation）
+        ctx.restore();
     }
 
-    /**
-     * 获取当前技能颜色
-     */
     getSkillColor() {
         const skill = CONSTANTS.SKILLS.find(s => s.id === this.skillId);
         return skill ? skill.color : "#fff";
     }
 
-    /**
-     * 简单的预览绘制（用于菜单）
-     */
     drawPreview(ctx, cx, cy, scale = 1) {
         ctx.save();
         ctx.translate(cx, cy);
         ctx.scale(scale, scale);
 
-        // 滑雪板
         ctx.fillStyle = "#8d6e63";
-        ctx.beginPath();
-        ctx.roundRect(-16, 6, 6, 28, 3);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.roundRect(10, 6, 6, 28, 3);
-        ctx.fill();
+        this._roundRect(ctx, -16, 6, 6, 28, 3); ctx.fill();
+        this._roundRect(ctx, 10, 6, 6, 28, 3); ctx.fill();
         ctx.fillStyle = "#e74c3c";
-        ctx.beginPath();
-        ctx.roundRect(-16, 6, 6, 8, 3);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.roundRect(10, 6, 6, 8, 3);
-        ctx.fill();
+        this._roundRect(ctx, -16, 6, 6, 8, 3); ctx.fill();
+        this._roundRect(ctx, 10, 6, 6, 8, 3); ctx.fill();
 
-        // 身体
         ctx.fillStyle = this.outfit.colorBody;
         ctx.beginPath();
-        ctx.ellipse(0, -2, 12, 14, 0, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.ellipse(0, -2, 12, 14, 0, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = "#34495e";
-        ctx.beginPath();
-        ctx.roundRect(-10, 6, 8, 12, 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.roundRect(2, 6, 8, 12, 2);
-        ctx.fill();
+        this._roundRect(ctx, -10, 6, 8, 12, 2); ctx.fill();
+        this._roundRect(ctx, 2, 6, 8, 12, 2); ctx.fill();
 
-        // 围巾
         ctx.fillStyle = this.outfit.colorScarf;
-        ctx.beginPath();
-        ctx.roundRect(-10, -24, 20, 6, 3);
-        ctx.fill();
+        this._roundRect(ctx, -10, -24, 20, 6, 3); ctx.fill();
 
-        // 脸
         ctx.fillStyle = "#ffccbc";
         ctx.beginPath();
-        ctx.arc(0, -34, 14, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.arc(0, -34, 14, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = "#333";
         ctx.beginPath();
-        ctx.arc(-5, -36, 2.5, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.arc(-5, -36, 2.5, 0, Math.PI * 2); ctx.fill();
         ctx.beginPath();
-        ctx.arc(5, -36, 2.5, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.arc(5, -36, 2.5, 0, Math.PI * 2); ctx.fill();
         ctx.strokeStyle = "#c0392b";
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.arc(0, -30, 4, 0.2, Math.PI - 0.2);
-        ctx.stroke();
+        ctx.arc(0, -30, 4, 0.2, Math.PI - 0.2); ctx.stroke();
 
-        // 帽子
         ctx.fillStyle = this.outfit.colorBody;
         ctx.beginPath();
-        ctx.arc(0, -40, 13, Math.PI, 0);
-        ctx.fill();
+        ctx.arc(0, -40, 13, Math.PI, 0); ctx.fill();
         ctx.fillStyle = "#ecf0f1";
         ctx.beginPath();
-        ctx.arc(0, -53, 5, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.arc(0, -53, 5, 0, Math.PI * 2); ctx.fill();
 
         ctx.restore();
     }
