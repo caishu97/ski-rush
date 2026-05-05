@@ -108,14 +108,16 @@ class Game {
 
             joystickBase.addEventListener('touchstart', (e) => {
                 e.preventDefault();
-                const touch = e.touches[0];
-                startJoystick(touch.clientX, touch.clientY);
+                // 使用 targetTouches 只取在摇杆元素上开始的手指，排除加速按钮等其他区域的手指
+                const touch = e.targetTouches[0];
+                if (touch) startJoystick(touch.clientX, touch.clientY);
             }, { passive: false });
 
             joystickBase.addEventListener('touchmove', (e) => {
                 e.preventDefault();
-                const touch = e.touches[0];
-                updateJoystick(touch.clientX, touch.clientY);
+                // 使用 targetTouches 排除其他区域的触摸干扰（比如正在按加速按钮的另一根手指）
+                const touch = e.targetTouches[0];
+                if (touch) updateJoystick(touch.clientX, touch.clientY);
             }, { passive: false });
 
             // 桌面端：鼠标拖动摇杆
@@ -352,33 +354,94 @@ class Game {
         if (this.onSkillEnd) this.onSkillEnd();
     }
 
+    // ============ 伪 3D 渲染 ============
+
     _render() {
         const ctx = this.ctx;
         const w = this.width;
         const h = this.height;
 
-        ctx.clearRect(0, 0, w, h);
-        ctx.fillStyle = "#cfe2f3";
-        ctx.fillRect(0, 0, w, h);
-
-        ctx.save();
-        ctx.translate(w / 2 - this.camera.x, h * 0.65 - this.camera.y);
+        if (!this.player || !this.world) return;
 
         const track = CONSTANTS.getTrackConfig(this.selectedTrackLevel);
-        this.world.draw(ctx, track, w, h, this.player.y);
-        this.player.draw(ctx);
+        const P3 = CONSTANTS.PSEUDO_3D;
 
-        ctx.restore();
+        // 摄像机跟随玩家：位于玩家后方，x 做轻微平滑
+        const camX = this.player.x;
+        const camY = this.player.y + P3.CAMERA_DISTANCE; // 玩家在摄像机"前面"（y 更小）
+        const horizonY = h * P3.ROAD_TOP_Y_RATIO;
 
-        if (this.player && this.player.offRoad) {
+        // 1. 天空
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
+        skyGrad.addColorStop(0, '#4FC3F7');
+        skyGrad.addColorStop(0.6, '#B3E5FC');
+        skyGrad.addColorStop(1, '#E0F7FA');
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, w, horizonY);
+
+        // 2. 远山（静态 + 摄像机横向视差）
+        this._drawMountains(ctx, w, horizonY, camX);
+
+        // 3. 地面（渐变）
+        const groundGrad = ctx.createLinearGradient(0, horizonY, 0, h);
+        groundGrad.addColorStop(0, '#B0E0FF');
+        groundGrad.addColorStop(1, '#E0F7FA');
+        ctx.fillStyle = groundGrad;
+        ctx.fillRect(0, horizonY, w, h - horizonY);
+
+        // 4. 世界（道路、冰面、障碍物、雪花）
+        this.world.draw3D(ctx, track, w, h, camX, camY, this.player.y, horizonY, this.player);
+
+        // 5. 玩家（始终在画面底部中央附近绘制，叠加在世界上方）
+        this._drawPlayer3D(ctx, w, h, track, camX, camY, horizonY);
+
+        // 6. 全屏警告
+        if (this.player.offRoad) {
             ctx.save();
             ctx.fillStyle = "rgba(231, 76, 60, 0.15)";
             ctx.fillRect(0, 0, w, h);
             ctx.fillStyle = "#e74c3c";
             ctx.font = "bold 18px sans-serif";
             ctx.textAlign = "center";
-            ctx.fillText("⚠️ 快回雪道!", w / 2, h * 0.25);
+            ctx.shadowColor = "white";
+            ctx.shadowBlur = 4;
+            ctx.fillText("⚠️ 快回雪道!", w / 2, h * 0.28);
             ctx.restore();
         }
+    }
+
+    _drawMountains(ctx, w, horizonY, camX) {
+        // 远山形状随摄像机横向略微移动（视差）
+        const parallax = camX * 0.002;
+        ctx.fillStyle = '#90A4AE';
+        ctx.beginPath();
+        ctx.moveTo(0, horizonY);
+        for (let x = 0; x <= w; x += 30) {
+            const noise = Math.sin((x * 0.008) + parallax) * 60 + Math.cos((x * 0.003) + parallax * 0.5) * 40;
+            ctx.lineTo(x, horizonY - 60 - Math.abs(noise));
+        }
+        ctx.lineTo(w, horizonY);
+        ctx.closePath();
+        ctx.fill();
+
+        // 第二层更近的山
+        ctx.fillStyle = '#B0BEC5';
+        ctx.beginPath();
+        ctx.moveTo(0, horizonY);
+        for (let x = 0; x <= w; x += 25) {
+            const noise = Math.sin((x * 0.012) + parallax * 1.5 + 1) * 35 + Math.cos((x * 0.005) + parallax + 2) * 25;
+            ctx.lineTo(x, horizonY - 25 - Math.abs(noise));
+        }
+        ctx.lineTo(w, horizonY);
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    _drawPlayer3D(ctx, w, h, track, camX, camY, horizonY) {
+        // 玩家固定在屏幕底部中央偏上的位置，不做透视（始终在前方）
+        // 用 player.draw3D 在画面中央底部绘制角色精灵
+        const centerX = w / 2;
+        const baseY = h - 40; // 玩家底部位置
+        this.player.draw3D(ctx, centerX, baseY, w, track, camX, camY, horizonY);
     }
 }

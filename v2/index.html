@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>极速滑雪 - Ski Rush</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- 主菜单 -->
+    <div id="main-menu" class="screen active">
+        <canvas id="menu-bg-canvas" class="menu-bg"></canvas>
+        <div class="menu-overlay"></div>
+
+        <div class="menu-content">
+            <h1>⛷️ 极速滑雪</h1>
+            <p class="subtitle">Ski Rush Adventure</p>
+            <div class="character-preview">
+                <canvas id="preview-canvas" width="120" height="150"></canvas>
+            </div>
+            <div id="track-info-bar" class="track-info-bar">
+                <span id="menu-current-track">赛道 1 - 新手雪道</span>
+                <button id="btn-change-track" class="btn btn-small">更换赛道</button>
+            </div>
+            <div id="skill-info-bar" class="track-info-bar">
+                <span>技能:</span>
+                <span id="menu-current-skill">🔴 无畏冲刺</span>
+                <button id="btn-change-skill" class="btn btn-small">切换</button>
+            </div>
+            <div class="menu-buttons">
+                <button id="btn-play" class="btn btn-primary">开始游戏</button>
+                <button id="btn-shop" class="btn btn-secondary">XP 商店</button>
+                <button id="btn-gacha" class="btn btn-secondary">🎁 抽卡商店</button>
+                <button id="btn-help" class="btn btn-secondary">游戏说明</button>
+            </div>
+            <div class="player-stats">
+                <span>总经验: <strong id="menu-xp">0</strong> XP</span>
+                <span>解锁赛道: <strong id="menu-level">1</strong></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 游戏画布区域 -->
+    <div id="game-container" class="screen">
+        <canvas id="game-canvas"></canvas>
+
+        <!-- HUD -->
+        <div id="hud" class="hud hidden">
+            <div class="hud-top">
+                <div class="hud-left">
+                    <div class="hud-item">
+                        <span class="hud-icon">⚡</span>
+                        <span id="hud-speed">0</span> km/h
+                    </div>
+                    <div class="hud-item">
+                        <span class="hud-icon">📍</span>
+                        <span id="hud-distance">0.0</span> km
+                    </div>
+                </div>
+                <div class="hud-center">
+                    <div class="track-badge">赛道 <span id="hud-track">1</span></div>
+                    <div id="hud-offroad" class="hud-offroad hidden">
+                        <span>⚠️ 离开雪道!</span>
+                        <span id="hud-offroad-timer">10</span>s 后扣 XP
+                    </div>
+                </div>
+                <div class="hud-right">
+                    <div class="hud-item coins">
+                        <span class="hud-icon">⭐</span>
+                        <span id="hud-xp">+0</span> XP
+                    </div>
+                </div>
+            </div>
+
+            <!-- 技能圆形按钮区域 -->
+            <div id="skill-bar" class="skill-bar hidden">
+                <div class="skill-circle-wrapper" id="skill-wrapper-desk">
+                    <svg class="skill-ring" viewBox="0 0 72 72">
+                        <circle class="skill-ring-bg" cx="36" cy="36" r="32"/>
+                        <circle id="skill-ring-progress" class="skill-ring-progress" cx="36" cy="36" r="32"/>
+                    </svg>
+                    <button id="btn-skill" class="skill-circle-btn">🔴</button>
+                    <span id="skill-timer" class="skill-timer hidden"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 移动端触控区 -->
+        <div id="mobile-controls" class="mobile-controls hidden">
+            <!-- 方向摇杆 -->
+            <div id="joystick-zone" class="joystick-zone">
+                <div id="joystick-base" class="joystick-base">
+                    <div id="joystick-knob" class="joystick-knob"></div>
+                </div>
+            </div>
+            <!-- 移动端技能按钮（圆形进度） -->
+            <div id="mobile-skill-wrapper" class="mobile-skill-wrapper">
+                <div class="skill-circle-wrapper" style="width: 64px; height: 64px;">
+                    <svg class="skill-ring" viewBox="0 0 72 72" style="width: 64px; height: 64px;">
+                        <circle class="skill-ring-bg" cx="36" cy="36" r="32"/>
+                        <circle id="skill-ring-progress-mobile" class="skill-ring-progress" cx="36" cy="36" r="32"/>
+                    </svg>
+                    <button id="btn-mobile-skill" class="skill-circle-btn" style="width: 56px; height: 56px; font-size: 1.4rem;">🔴</button>
+                    <span id="skill-timer-mobile" class="skill-timer hidden" style="font-size: 0.9rem;"></span>
+                </div>
+            </div>
+            <button id="btn-accelerate" class="btn-accelerate">⏩</button>
+        </div>
+
+        <!-- 桌面端提示 -->
+        <div id="desktop-hint" class="desktop-hint hidden">
+            <kbd>←</kbd><kbd>→</kbd> 转向　<kbd>↑</kbd> 加速　<kbd>Space</kbd> 技能
+        </div>
+
+        <!-- 结算弹窗 -->
+        <div id="result-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2>🏔️ 滑行结束</h2>
+                <div class="result-stats">
+                    <div class="result-item">
+                        <span>赛道</span>
+                        <strong id="result-track">赛道 1 - 新手雪道</strong>
+                    </div>
+                    <div class="result-item">
+                        <span>滑行距离</span>
+                        <strong id="result-distance">0.0 km</strong>
+                    </div>
+                    <div class="result-item">
+                        <span>本局经验</span>
+                        <strong id="result-xp">+0 XP</strong>
+                    </div>
+                </div>
+                <div class="modal-buttons">
+                    <button id="btn-restart" class="btn btn-primary">再来一局</button>
+                    <button id="btn-menu" class="btn btn-secondary">返回菜单</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 暂停菜单 -->
+        <div id="pause-modal" class="modal hidden">
+            <div class="modal-content">
+                <h2>⏸️ 暂停</h2>
+                <div class="modal-buttons">
+                    <button id="btn-resume" class="btn btn-primary">继续游戏</button>
+                    <button id="btn-end-run" class="btn btn-secondary" style="background:#e74c3c;color:white;border:none;">结束滑行</button>
+                    <button id="btn-pause-menu" class="btn btn-secondary">返回菜单</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- XP 商店弹窗 -->
+    <div id="shop-modal" class="modal hidden">
+        <div class="modal-content shop-content">
+            <h2>🛍️ XP 商店</h2>
+            <p class="shop-coins">当前经验: <strong id="shop-xp">0</strong> XP</p>
+            <div class="shop-tabs">
+                <button id="tab-track" class="shop-tab active">赛道</button>
+                <button id="tab-outfit" class="shop-tab">滑雪服</button>
+                <button id="tab-pack" class="shop-tab">卡包</button>
+            </div>
+            <div id="shop-items" class="shop-items"></div>
+            <button id="btn-close-shop" class="btn btn-secondary">关闭</button>
+        </div>
+    </div>
+
+    <!-- 抽卡商店弹窗 -->
+    <div id="gacha-modal" class="modal hidden">
+        <div class="modal-content gacha-content">
+            <h2>🎁 抽卡商店</h2>
+            <p class="shop-coins">当前经验: <strong id="gacha-xp">0</strong> XP</p>
+            <div id="gacha-packs" class="gacha-packs"></div>
+            <button id="btn-close-gacha" class="btn btn-secondary">关闭</button>
+        </div>
+    </div>
+
+    <!-- 抽卡动画弹窗 -->
+    <div id="gacha-anim-modal" class="modal hidden">
+        <div class="modal-content gacha-anim-content">
+            <div id="gacha-card" class="gacha-card">
+                <div class="gacha-card-inner">
+                    <div class="gacha-card-front">
+                        <div class="gacha-card-pack-icon" id="gacha-anim-icon">🎁</div>
+                        <div class="gacha-card-text">?</div>
+                    </div>
+                    <div class="gacha-card-back" id="gacha-card-back">
+                        <div class="gacha-reward-icon" id="gacha-reward-icon">🏆</div>
+                        <div class="gacha-reward-title" id="gacha-reward-title">奖励名称</div>
+                        <div class="gacha-reward-desc" id="gacha-reward-desc">奖励描述</div>
+                    </div>
+                </div>
+            </div>
+            <div class="gacha-sparkles" id="gacha-sparkles"></div>
+            <button id="btn-gacha-ok" class="btn btn-primary" style="margin-top:20px;">太棒了!</button>
+        </div>
+    </div>
+
+    <!-- 赛道选择弹窗 -->
+    <div id="track-modal" class="modal hidden">
+        <div class="modal-content shop-content">
+            <h2>🏔️ 选择赛道</h2>
+            <p class="shop-coins">总经验: <strong id="track-select-xp">0</strong> XP</p>
+            <div id="track-items" class="shop-items"></div>
+            <button id="btn-close-track" class="btn btn-secondary">关闭</button>
+        </div>
+    </div>
+
+    <!-- 技能选择弹窗 -->
+    <div id="skill-modal" class="modal hidden">
+        <div class="modal-content shop-content">
+            <h2>🧙 选择技能小人</h2>
+            <p class="shop-coins">每局可携带一个技能上场，按空格键触发</p>
+            <div id="skill-items" class="shop-items"></div>
+            <button id="btn-close-skill" class="btn btn-secondary">关闭</button>
+        </div>
+    </div>
+
+    <!-- 帮助弹窗 -->
+    <div id="help-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>📖 游戏说明</h2>
+            <div class="help-text">
+                <p><strong>操作方式:</strong></p>
+                <ul>
+                    <li>键盘 <kbd>←</kbd> <kbd>→</kbd> 或 <kbd>A</kbd> <kbd>D</kbd> 控制左右方向</li>
+                    <li>按住 <kbd>↑</kbd> 上键加速滑行</li>
+                    <li>按 <kbd>Space</kbd> 空格键触发技能</li>
+                </ul>
+                <p><strong>游戏规则:</strong></p>
+                <ul>
+                    <li>游戏开始前在主界面<strong>选择赛道和技能</strong>，撞障碍即结束</li>
+                    <li>滑行中获得经验值（XP），可用 XP 解锁更高级的赛道和滑雪服</li>
+                    <li>4个技能小人各有独特能力，冷却10秒，统一按空格触发：</li>
+                    <ul>
+                        <li>🔴 无畏冲刺：3秒无敌冲刺</li>
+                        <li>🔵 急冻术：冻结移动障碍5秒</li>
+                        <li>🟢 幽灵形态：碰撞体积减半5秒</li>
+                        <li>🟡 经验加速：XP翻倍8秒</li>
+                    </ul>
+                    <li>1~5 级赛道：障碍<strong>数量</strong>越来越多；5 级后障碍<strong>难度</strong>越来越高</li>
+                    <li>离开雪道会大幅减速，每 10 秒扣 1 XP</li>
+                </ul>
+            </div>
+            <button id="btn-close-help" class="btn btn-secondary">知道了</button>
+        </div>
+    </div>
+
+    <script src="js/constants.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/world.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
