@@ -748,10 +748,6 @@ kbd {
     .menu-content h1 {
         font-size: 3.2rem;
     }
-
-    .mobile-controls {
-        display: none !important;
-    }
 }
 
 @media (max-width: 767px) {

@@ -118,6 +118,18 @@ class Game {
                 updateJoystick(touch.clientX, touch.clientY);
             }, { passive: false });
 
+            // 桌面端：鼠标拖动摇杆
+            joystickBase.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                startJoystick(e.clientX, e.clientY);
+            });
+            document.addEventListener('mousemove', (e) => {
+                updateJoystick(e.clientX, e.clientY);
+            });
+            document.addEventListener('mouseup', () => {
+                endJoystick();
+            });
+
             // touchend 和 touchcancel 处理文档级，避免手指划出范围丢失事件
             const handleTouchEnd = (e) => {
                 // 检查是否还有涉及摇杆的触点

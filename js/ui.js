@@ -314,11 +314,9 @@ const UI = {
         this.elements.resultModal.classList.add('hidden');
         this.elements.skillBar.classList.remove('hidden');
 
-        if (Utils.isTouchDevice()) {
-            this.elements.mobileControls.classList.remove('hidden');
-        } else {
-            this.elements.desktopHint.classList.remove('hidden');
-        }
+        // 始终显示移动端操控控件（支持鼠标/触摸）
+        this.elements.mobileControls.classList.remove('hidden');
+        this.elements.desktopHint.classList.remove('hidden');
 
         // 设置技能按钮颜色和内容
         const save = Storage.load();
