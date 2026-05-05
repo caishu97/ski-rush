@@ -43,7 +43,7 @@ const CONSTANTS = {
         { id: "void",    name: "虚空滑雪服", bonus: 12.0, price: 99999, colorBody: "#0d0042", colorScarf: "#e040fb",  desc: "+1100% 经验加成" },
     ],
 
-    // 技能小人（4个，每局选择1个携带上场，统一按空格触发）
+    // 技能小人（4个基础免费 + 4个高级抽卡限定，每局选择1个携带上场，统一按空格触发）
     SKILLS: [
         {
             id: "invincible",
@@ -53,6 +53,7 @@ const CONSTANTS = {
             cooldown: 10,
             duration: 3,
             desc: "3秒无敌冲刺（免疫碰撞+速度提升）",
+            free: true,
         },
         {
             id: "freeze",
@@ -62,6 +63,7 @@ const CONSTANTS = {
             cooldown: 10,
             duration: 5,
             desc: "冻结移动障碍5秒，免疫冰面减速",
+            free: true,
         },
         {
             id: "ghost",
@@ -71,6 +73,7 @@ const CONSTANTS = {
             cooldown: 10,
             duration: 5,
             desc: "碰撞体积减半，持续5秒",
+            free: true,
         },
         {
             id: "doublexp",
@@ -80,6 +83,93 @@ const CONSTANTS = {
             cooldown: 10,
             duration: 8,
             desc: "XP获取翻倍，持续8秒",
+            free: true,
+        },
+        {
+            id: "fire_rush",
+            name: "烈焰冲刺",
+            icon: "🔥",
+            color: "#e65100",
+            cooldown: 8,
+            duration: 4,
+            desc: "4秒烈焰无敌，自动满速冲刺",
+            free: false,
+        },
+        {
+            id: "time_stop",
+            name: "时间凝滞",
+            icon: "⏱️",
+            color: "#7c4dff",
+            cooldown: 12,
+            duration: 5,
+            desc: "凝滞时间5秒，所有障碍静止",
+            free: false,
+        },
+        {
+            id: "shadow",
+            name: "暗影形态",
+            icon: "👤",
+            color: "#424242",
+            cooldown: 10,
+            duration: 6,
+            desc: "完全无视碰撞6秒，如入无人之境",
+            free: false,
+        },
+        {
+            id: "gold_rush",
+            name: "淘金热",
+            icon: "💰",
+            color: "#ffd700",
+            cooldown: 12,
+            duration: 10,
+            desc: "XP获取3倍，持续10秒",
+            free: false,
+        },
+    ],
+
+    // 抽卡卡包配置
+    CARD_PACKS: [
+        {
+            id: "common",
+            name: "普通卡包",
+            icon: "🥉",
+            price: 50,
+            desc: "有机会获得技能卡或经验值",
+            color: "#cd7f32",
+            xpMin: 20,
+            xpMax: 80,
+            xpRate: 0.60,
+            skillRate: 0.40,
+            skillWeights: [5, 5, 5, 5, 1, 1, 1, 1], // 对应 SKILLS 的权重
+            duplicateXp: 40,
+        },
+        {
+            id: "rare",
+            name: "稀有卡包",
+            icon: "🥈",
+            price: 150,
+            desc: "更高概率获得高级技能卡",
+            color: "#c0c0c0",
+            xpMin: 80,
+            xpMax: 200,
+            xpRate: 0.35,
+            skillRate: 0.65,
+            skillWeights: [3, 3, 3, 3, 2, 2, 2, 2],
+            duplicateXp: 100,
+        },
+        {
+            id: "legendary",
+            name: "传说卡包",
+            icon: "🥇",
+            price: 400,
+            desc: "大概率获得高级技能卡或大量经验",
+            color: "#ffd700",
+            xpMin: 200,
+            xpMax: 500,
+            xpRate: 0.20,
+            skillRate: 0.80,
+            skillWeights: [1, 1, 1, 1, 3, 3, 3, 3],
+            duplicateXp: 250,
         },
     ],
 

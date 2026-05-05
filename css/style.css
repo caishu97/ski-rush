@@ -755,3 +755,178 @@ kbd {
         display: none !important;
     }
 }
+
+/* === 卡包商店 === */
+.gacha-content {
+    max-width: 420px;
+}
+
+.gacha-packs {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 20px;
+    max-height: 60vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 4px;
+}
+
+.gacha-pack-item {
+    background: #f8f9fa;
+    border-radius: 16px;
+    padding: 16px;
+    border: 2px solid transparent;
+    transition: border-color 0.2s, transform 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.gacha-pack-item:hover {
+    border-color: #ff6b35;
+    transform: translateY(-1px);
+}
+
+.gacha-pack-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.gacha-pack-lrg-icon {
+    font-size: 2.6rem;
+    flex-shrink: 0;
+}
+
+.gacha-pack-title h3 {
+    font-size: 1.1rem;
+    color: #1a5276;
+    margin-bottom: 2px;
+    text-align: left;
+}
+
+.gacha-pack-title p {
+    font-size: 0.8rem;
+    color: #7f8c8d;
+    text-align: left;
+}
+
+.gacha-pack-stats {
+    display: flex;
+    gap: 12px;
+    font-size: 0.8rem;
+    color: #555;
+    background: rgba(255,255,255,0.6);
+    padding: 6px 10px;
+    border-radius: 10px;
+}
+
+/* 抽卡动画 */
+.gacha-anim-content {
+    max-width: 360px;
+    position: relative;
+    overflow: visible;
+}
+
+.gacha-card {
+    width: 200px;
+    height: 260px;
+    margin: 0 auto;
+    perspective: 800px;
+}
+
+.gacha-card-inner {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.gacha-card.flipped .gacha-card-inner {
+    transform: rotateY(180deg);
+}
+
+.gacha-card-front,
+.gacha-card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    border: 3px solid rgba(255,255,255,0.2);
+}
+
+.gacha-card-front {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+}
+
+.gacha-card-front .gacha-card-text {
+    font-size: 4rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.3);
+    margin-top: 8px;
+}
+
+.gacha-card-pack-icon {
+    font-size: 3.5rem;
+}
+
+.gacha-card-back {
+    transform: rotateY(180deg);
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: white;
+}
+
+.gacha-reward-icon {
+    font-size: 3.5rem;
+    margin-bottom: 8px;
+}
+
+.gacha-reward-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.gacha-reward-desc {
+    font-size: 0.85rem;
+    opacity: 0.9;
+    padding: 0 12px;
+}
+
+.gacha-sparkles {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.sparkle {
+    position: absolute;
+    font-size: 1.2rem;
+    opacity: 0;
+    animation: sparkleAnim 1.2s ease-out forwards;
+}
+
+@keyframes sparkleAnim {
+    0%   { opacity: 0; transform: scale(0.5) rotate(0deg); }
+    30%  { opacity: 1; transform: scale(1.3) rotate(20deg); }
+    100% { opacity: 0; transform: scale(0.8) rotate(45deg) translateY(-20px); }
+}
+
+/* 卡包标签页中的列表 */
+.gacha-pack-icon {
+    font-size: 2.4rem;
+    flex-shrink: 0;
+}

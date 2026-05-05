@@ -51,8 +51,24 @@ const UI = {
         shopXp: document.getElementById('shop-xp'),
         tabTrack: document.getElementById('tab-track'),
         tabOutfit: document.getElementById('tab-outfit'),
+        tabPack: document.getElementById('tab-pack'),
         shopItems: document.getElementById('shop-items'),
         btnCloseShop: document.getElementById('btn-close-shop'),
+
+        gachaModal: document.getElementById('gacha-modal'),
+        gachaXp: document.getElementById('gacha-xp'),
+        gachaPacks: document.getElementById('gacha-packs'),
+        btnCloseGacha: document.getElementById('btn-close-gacha'),
+
+        gachaAnimModal: document.getElementById('gacha-anim-modal'),
+        gachaCard: document.getElementById('gacha-card'),
+        gachaAnimIcon: document.getElementById('gacha-anim-icon'),
+        gachaCardBack: document.getElementById('gacha-card-back'),
+        gachaRewardIcon: document.getElementById('gacha-reward-icon'),
+        gachaRewardTitle: document.getElementById('gacha-reward-title'),
+        gachaRewardDesc: document.getElementById('gacha-reward-desc'),
+        gachaSparkles: document.getElementById('gacha-sparkles'),
+        btnGachaOk: document.getElementById('btn-gacha-ok'),
 
         trackModal: document.getElementById('track-modal'),
         trackSelectXp: document.getElementById('track-select-xp'),
@@ -68,6 +84,7 @@ const UI = {
         // Buttons
         btnPlay: document.getElementById('btn-play'),
         btnShop: document.getElementById('btn-shop'),
+        btnGacha: document.getElementById('btn-gacha'),
         btnHelp: document.getElementById('btn-help'),
         btnRestart: document.getElementById('btn-restart'),
         btnMenu: document.getElementById('btn-menu'),
@@ -93,8 +110,7 @@ const UI = {
 
     init(game) {
         this.game = game;
-        this.shopTab = 'track';
-
+        this.shopTab = 'track'; // track | outfit | pack
         this._setupMenuBg();
         this._bindButtons();
         this._updateMenuStats();
@@ -529,22 +545,31 @@ const UI = {
         this.elements.skillItems.innerHTML = '';
 
         for (const skill of CONSTANTS.SKILLS) {
+            const owned = save.ownedSkills.includes(skill.id);
             const isSelected = save.selectedSkill === skill.id;
             const itemDiv = document.createElement('div');
-            itemDiv.className = 'shop-item' + (isSelected ? ' active-item' : '');
+            itemDiv.className = 'shop-item' + (isSelected ? ' active-item' : (owned ? '' : ' locked-item'));
+
+            let actionHtml = '';
+            if (isSelected) {
+                actionHtml = '<span class="equipped-badge">已携带</span>';
+            } else if (owned) {
+                actionHtml = `<button class="btn btn-secondary" data-select-skill="${skill.id}">携带</button>`;
+            } else {
+                actionHtml = '<span class="locked-badge">未解锁</span>';
+            }
+
+            const lockStyle = owned ? '' : 'style="opacity:0.55;"';
 
             itemDiv.innerHTML = `
-                <div class="shop-item-info" style="flex: 1;">
+                <div class="shop-item-info" style="flex: 1;" ${lockStyle}>
                     <h3>${skill.icon} ${skill.name}</h3>
                     <p>${skill.desc}</p>
                     <p style="font-size: 0.75rem; color: #999; margin-top: 4px;">
                         冷却 ${skill.cooldown}s | 持续 ${skill.duration}s | 空格键触发
                     </p>
                 </div>
-                <div class="shop-item-action">
-                    ${isSelected ? '<span class="equipped-badge">已携带</span>' :
-                        `<button class="btn btn-secondary" data-select-skill="${skill.id}">携带</button>`}
-                </div>
+                <div class="shop-item-action">${actionHtml}</div>
             `;
             this.elements.skillItems.appendChild(itemDiv);
         }
@@ -578,6 +603,7 @@ const UI = {
         this.elements.shopXp.textContent = save.totalXp;
         this.elements.tabTrack.classList.toggle('active', this.shopTab === 'track');
         this.elements.tabOutfit.classList.toggle('active', this.shopTab === 'outfit');
+        this.elements.tabPack.classList.toggle('active', this.shopTab === 'pack');
         this._renderShopItems(save);
         this.elements.shopModal.classList.remove('hidden');
     },
@@ -627,6 +653,41 @@ const UI = {
                 btn.addEventListener('click', () => {
                     const level = parseInt(btn.getAttribute('data-select-shop-track'));
                     this._selectTrack(level);
+                });
+            });
+
+        } else if (this.shopTab === 'pack') {
+            for (const pack of CONSTANTS.CARD_PACKS) {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'shop-item';
+
+                const canBuy = save.totalXp >= pack.price;
+
+                let actionHtml = '';
+                if (canBuy) {
+                    actionHtml = `<button class="btn btn-primary" data-buy-pack="${pack.id}">${pack.price} XP 购买</button>`;
+                } else {
+                    actionHtml = `<button class="btn btn-secondary" disabled>${pack.price} XP</button>`;
+                }
+
+                itemDiv.innerHTML = `
+                    <div class="gacha-pack-icon" style="font-size:2.4rem;flex-shrink:0;">${pack.icon}</div>
+                    <div class="shop-item-info" style="flex:1;">
+                        <h3>${pack.name}</h3>
+                        <p>${pack.desc}</p>
+                        <p style="font-size:0.75rem;color:#999;margin-top:2px;">
+                            技能概率: ${Math.round(pack.skillRate * 100)}% | 经验概率: ${Math.round(pack.xpRate * 100)}%
+                        </p>
+                    </div>
+                    <div class="shop-item-action">${actionHtml}</div>
+                `;
+                this.elements.shopItems.appendChild(itemDiv);
+            }
+
+            this.elements.shopItems.querySelectorAll('button[data-buy-pack]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const id = btn.getAttribute('data-buy-pack');
+                    this._buyPack(id);
                 });
             });
 
@@ -712,6 +773,172 @@ const UI = {
         this._drawPreviewCharacter();
     },
 
+    // ================= 抽卡 =================
+
+    openGacha() {
+        const save = Storage.load();
+        this.elements.gachaXp.textContent = save.totalXp;
+        this.elements.gachaPacks.innerHTML = '';
+
+        for (const pack of CONSTANTS.CARD_PACKS) {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'gacha-pack-item';
+            const canBuy = save.totalXp >= pack.price;
+
+            itemDiv.innerHTML = `
+                <div class="gacha-pack-header">
+                    <span class="gacha-pack-lrg-icon">${pack.icon}</span>
+                    <div class="gacha-pack-title">
+                        <h3>${pack.name}</h3>
+                        <p>${pack.desc}</p>
+                    </div>
+                </div>
+                <div class="gacha-pack-stats">
+                    <span>🏆 技能概率 ${Math.round(pack.skillRate * 100)}%</span>
+                    <span>⭐ 经验概率 ${Math.round(pack.xpRate * 100)}%</span>
+                </div>
+                <button class="btn ${canBuy ? 'btn-primary' : 'btn-secondary'}" data-open-gacha="${pack.id}" ${canBuy ? '' : 'disabled'}>
+                    ${pack.price} XP 抽取
+                </button>
+            `;
+            this.elements.gachaPacks.appendChild(itemDiv);
+        }
+
+        this.elements.gachaPacks.querySelectorAll('button[data-open-gacha]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.getAttribute('data-open-gacha');
+                this._openGachaAnim(id);
+            });
+        });
+
+        this.elements.gachaModal.classList.remove('hidden');
+    },
+
+    closeGacha() {
+        this.elements.gachaModal.classList.add('hidden');
+    },
+
+    _openGachaAnim(packId) {
+        const pack = CONSTANTS.CARD_PACKS.find(p => p.id === packId);
+        if (!pack) return;
+        const save = Storage.load();
+        if (save.totalXp < pack.price) return;
+
+        // 扣除 XP
+        save.totalXp -= pack.price;
+
+        // 随机抽取
+        const reward = this._drawReward(pack, save);
+
+        // 结算奖励
+        if (reward.type === 'xp') {
+            save.totalXp += reward.value;
+        } else if (reward.type === 'skill') {
+            const skill = CONSTANTS.SKILLS.find(s => s.id === reward.value);
+            if (skill && !save.ownedSkills.includes(skill.id)) {
+                save.ownedSkills.push(skill.id);
+            } else {
+                // 重复技能转 XP
+                save.totalXp += pack.duplicateXp;
+                reward.duplicate = true;
+                reward.duplicateXp = pack.duplicateXp;
+            }
+        }
+
+        Storage.save(save);
+        this._updateMenuStats();
+
+        // 展示抽卡动画
+        this.elements.gachaModal.classList.add('hidden');
+        this.elements.gachaAnimModal.classList.remove('hidden');
+
+        this.elements.gachaCard.classList.remove('flipped');
+        this.elements.gachaAnimIcon.textContent = pack.icon;
+        this.elements.gachaSparkles.innerHTML = '';
+
+        // 1s 后翻牌显示结果
+        setTimeout(() => {
+            let icon, title, desc, color;
+            if (reward.type === 'xp') {
+                icon = '⭐';
+                title = `经验值 +${reward.value}`;
+                desc = '经验值可直接用于商店购买';
+                color = '#f1c40f';
+            } else if (reward.type === 'skill') {
+                const skill = CONSTANTS.SKILLS.find(s => s.id === reward.value);
+                if (reward.duplicate) {
+                    icon = skill ? skill.icon : '❓';
+                    title = `重复技能 → +${reward.duplicateXp} XP`;
+                    desc = `你已经拥有 ${skill.name}，自动转换为 XP`;
+                    color = '#95a5a6';
+                } else {
+                    icon = skill ? skill.icon : '❓';
+                    title = `${skill.name}`;
+                    desc = `新技能解锁！${skill.desc}`;
+                    color = skill.color;
+                }
+            }
+
+            this.elements.gachaRewardIcon.textContent = icon;
+            this.elements.gachaRewardTitle.textContent = title;
+            this.elements.gachaRewardDesc.textContent = desc;
+            this.elements.gachaCardBack.style.background = `linear-gradient(135deg, ${color}, ${this._darken(color)})`;
+
+            this.elements.gachaCard.classList.add('flipped');
+
+            // 添加闪烁粒子
+            for (let i = 0; i < 12; i++) {
+                const s = document.createElement('span');
+                s.className = 'sparkle';
+                s.style.left = Math.random() * 100 + '%';
+                s.style.top = Math.random() * 100 + '%';
+                s.style.animationDelay = (Math.random() * 0.5) + 's';
+                s.textContent = '✨';
+                this.elements.gachaSparkles.appendChild(s);
+            }
+        }, 800);
+    },
+
+    _drawReward(pack, save) {
+        const rand = Math.random();
+        if (rand < pack.xpRate) {
+            // 经验奖励
+            const xpVal = Math.floor(pack.xpMin + Math.random() * (pack.xpMax - pack.xpMin + 1));
+            return { type: 'xp', value: xpVal };
+        } else {
+            // 技能奖励（按权重随机）
+            const weights = pack.skillWeights;
+            const total = weights.reduce((a, b) => a + b, 0);
+            let r = Math.random() * total;
+            let skillIndex = 0;
+            for (let i = 0; i < weights.length; i++) {
+                r -= weights[i];
+                if (r <= 0) { skillIndex = i; break; }
+            }
+            const skill = CONSTANTS.SKILLS[skillIndex];
+            return { type: 'skill', value: skill.id };
+        }
+    },
+
+    _darken(hexColor) {
+        // 简单的颜色暗化
+        const hex = hexColor.replace('#', '');
+        const num = parseInt(hex, 16);
+        const r = Math.max(0, ((num >> 16) & 255) - 40);
+        const g = Math.max(0, ((num >> 8) & 255) - 40);
+        const b = Math.max(0, (num & 255) - 40);
+        return `rgb(${r},${g},${b})`;
+    },
+
+    _buyPack(id) {
+        this._openGachaAnim(id);
+    },
+
+    _closeGachaAnim() {
+        this.elements.gachaAnimModal.classList.add('hidden');
+        this.showMenu();
+    },
+
     // ================= 帮助 =================
 
     openHelp() {
@@ -735,6 +962,7 @@ const UI = {
         this.elements.btnChangeSkill.addEventListener('click', () => this.openSkillSelect());
 
         this.elements.btnShop.addEventListener('click', () => this.openShop());
+        this.elements.btnGacha.addEventListener('click', () => this.openGacha());
         this.elements.btnHelp.addEventListener('click', () => this.openHelp());
 
         this.elements.btnRestart.addEventListener('click', () => {
@@ -785,9 +1013,27 @@ const UI = {
             this.openShop();
         });
 
+        this.elements.tabPack.addEventListener('click', () => {
+            this.shopTab = 'pack';
+            this.openShop();
+        });
+
         this.elements.btnCloseShop.addEventListener('click', () => this.closeShop());
         this.elements.btnCloseTrack.addEventListener('click', () => this.closeTrackSelect());
         this.elements.btnCloseSkill.addEventListener('click', () => this.closeSkillSelect());
         this.elements.btnCloseHelp.addEventListener('click', () => this.closeHelp());
+        if (this.elements.btnCloseGacha) this.elements.btnCloseGacha.addEventListener('click', () => this.closeGacha());
+        if (this.elements.btnGachaOk) this.elements.btnGachaOk.addEventListener('click', () => this._closeGachaAnim());
+
+        // ESC 关闭弹窗
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (!this.elements.gachaAnimModal.classList.contains('hidden')) {
+                    this._closeGachaAnim();
+                } else if (!this.elements.gachaModal.classList.contains('hidden')) {
+                    this.closeGacha();
+                }
+            }
+        });
     },
 };

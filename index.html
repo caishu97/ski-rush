@@ -30,6 +30,7 @@
             <div class="menu-buttons">
                 <button id="btn-play" class="btn btn-primary">开始游戏</button>
                 <button id="btn-shop" class="btn btn-secondary">XP 商店</button>
+                <button id="btn-gacha" class="btn btn-secondary">🎁 抽卡商店</button>
                 <button id="btn-help" class="btn btn-secondary">游戏说明</button>
             </div>
             <div class="player-stats">
@@ -157,9 +158,41 @@
             <div class="shop-tabs">
                 <button id="tab-track" class="shop-tab active">赛道</button>
                 <button id="tab-outfit" class="shop-tab">滑雪服</button>
+                <button id="tab-pack" class="shop-tab">卡包</button>
             </div>
             <div id="shop-items" class="shop-items"></div>
             <button id="btn-close-shop" class="btn btn-secondary">关闭</button>
+        </div>
+    </div>
+
+    <!-- 抽卡商店弹窗 -->
+    <div id="gacha-modal" class="modal hidden">
+        <div class="modal-content gacha-content">
+            <h2>🎁 抽卡商店</h2>
+            <p class="shop-coins">当前经验: <strong id="gacha-xp">0</strong> XP</p>
+            <div id="gacha-packs" class="gacha-packs"></div>
+            <button id="btn-close-gacha" class="btn btn-secondary">关闭</button>
+        </div>
+    </div>
+
+    <!-- 抽卡动画弹窗 -->
+    <div id="gacha-anim-modal" class="modal hidden">
+        <div class="modal-content gacha-anim-content">
+            <div id="gacha-card" class="gacha-card">
+                <div class="gacha-card-inner">
+                    <div class="gacha-card-front">
+                        <div class="gacha-card-pack-icon" id="gacha-anim-icon">🎁</div>
+                        <div class="gacha-card-text">?</div>
+                    </div>
+                    <div class="gacha-card-back" id="gacha-card-back">
+                        <div class="gacha-reward-icon" id="gacha-reward-icon">🏆</div>
+                        <div class="gacha-reward-title" id="gacha-reward-title">奖励名称</div>
+                        <div class="gacha-reward-desc" id="gacha-reward-desc">奖励描述</div>
+                    </div>
+                </div>
+            </div>
+            <div class="gacha-sparkles" id="gacha-sparkles"></div>
+            <button id="btn-gacha-ok" class="btn btn-primary" style="margin-top:20px;">太棒了!</button>
         </div>
     </div>
 

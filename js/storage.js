@@ -4,7 +4,7 @@
  */
 
 const Storage = (function () {
-    const KEY = "ski_rush_save_v3";
+    const KEY = "ski_rush_save_v4";
 
     const defaultData = {
         totalXp: 0,              // 生涯总经验（累计 XP）
@@ -12,12 +12,13 @@ const Storage = (function () {
         selectedTrack: 1,        // 当前选择的赛道
         ownedOutfits: ["default"], // 已拥有的滑雪服
         equippedOutfit: "default", // 当前装备
+        ownedSkills: ["invincible", "freeze", "ghost", "doublexp"], // 已拥有的技能（4个免费）
         selectedSkill: "invincible", // 当前携带的技能小人
         firstPlay: true,
     };
 
     function migrate() {
-        for (const oldKey of ["ski_rush_save_v2", "ski_rush_save_v1"]) {
+        for (const oldKey of ["ski_rush_save_v3", "ski_rush_save_v2", "ski_rush_save_v1"]) {
             try {
                 const raw = localStorage.getItem(oldKey);
                 if (raw) {
@@ -29,6 +30,8 @@ const Storage = (function () {
                         selectedTrack: data.selectedTrack || 1,
                         ownedOutfits: data.ownedOutfits || ["default"],
                         equippedOutfit: data.equippedOutfit || "default",
+                        ownedSkills: data.ownedSkills || defaultData.ownedSkills,
+                        selectedSkill: data.selectedSkill || "invincible",
                     };
                     if (oldKey === "ski_rush_save_v1") {
                         if (data.totalXp >= 400) migrated.unlockedTracks.push(5);
