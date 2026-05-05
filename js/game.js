@@ -108,14 +108,16 @@ class Game {
 
             joystickBase.addEventListener('touchstart', (e) => {
                 e.preventDefault();
-                const touch = e.touches[0];
-                startJoystick(touch.clientX, touch.clientY);
+                // 使用 targetTouches 只取在摇杆元素上开始的手指，排除加速按钮等其他区域的手指
+                const touch = e.targetTouches[0];
+                if (touch) startJoystick(touch.clientX, touch.clientY);
             }, { passive: false });
 
             joystickBase.addEventListener('touchmove', (e) => {
                 e.preventDefault();
-                const touch = e.touches[0];
-                updateJoystick(touch.clientX, touch.clientY);
+                // 使用 targetTouches 排除其他区域的触摸干扰（比如正在按加速按钮的另一根手指）
+                const touch = e.targetTouches[0];
+                if (touch) updateJoystick(touch.clientX, touch.clientY);
             }, { passive: false });
 
             // 桌面端：鼠标拖动摇杆
