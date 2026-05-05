@@ -153,17 +153,19 @@ class World {
     draw(ctx, track, screenW, screenH, playerY) {
         // === 雪道背景 ===
         const halfTrack = track.width / 2;
-        // 由于 ctx 已经被 translate 到玩家为中心，所以这里用相对坐标绘制
-        const viewTop = -screenH * 1.2;
-        const viewBottom = screenH * 1.5;
+        // 由于 ctx 已经被 translate 到玩家为中心，这里用相对于玩家的坐标
+        // 将背景范围扩大，避免任何极端情况下露底
+        const viewTop = -screenH * 2.0;
+        const viewBottom = screenH * 2.5;
+        const viewHeight = viewBottom - viewTop;
 
-        // 两侧野雪
+        // 两侧野雪 — 横向足够大
         ctx.fillStyle = "#d0e8f2";
-        ctx.fillRect(-screenW * 2, viewTop, screenW * 4, viewBottom - viewTop);
+        ctx.fillRect(-screenW * 4, viewTop, screenW * 8, viewHeight);
 
         // 主雪道（稍白）
         ctx.fillStyle = track.color;
-        ctx.fillRect(-halfTrack - 4, viewTop, (halfTrack + 4) * 2, viewBottom - viewTop);
+        ctx.fillRect(-halfTrack - 4, viewTop, (halfTrack + 4) * 2, viewHeight);
 
         // 雪道边界线
         ctx.strokeStyle = "#aed6f1";

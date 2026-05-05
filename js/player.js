@@ -38,7 +38,7 @@ class Player {
     /**
      * 更新玩家状态
      * @param {number} dt 时间增量(秒)
-     * @param {Object} input 输入状态 { left, right, boost }
+     * @param {Object} input 输入状态 { left, right, boost, analogX }
      * @param {Object} track 当前赛道配置
      */
     update(dt, input, track) {
@@ -70,8 +70,13 @@ class Player {
 
         // === 横向移动 ===
         let targetVx = 0;
-        if (input.left) targetVx = -CONSTANTS.TURN_SPEED;
-        if (input.right) targetVx = CONSTANTS.TURN_SPEED;
+        if (input.analogX !== undefined && input.analogX !== 0) {
+            // 使用摇杆模拟量
+            targetVx = input.analogX * CONSTANTS.TURN_SPEED;
+        } else {
+            if (input.left) targetVx = -CONSTANTS.TURN_SPEED;
+            if (input.right) targetVx = CONSTANTS.TURN_SPEED;
+        }
 
         // 冰面或冲出雪道时操控性下降
         let turnFactor = 1.0;

@@ -15,6 +15,7 @@ class Game {
             left: false,
             right: false,
             boost: false,
+            analogX: 0,
         };
 
         this.player = null;
@@ -57,19 +58,87 @@ class Game {
             if (e.key === 'ArrowUp') this.input.boost = false;
         });
 
-        // 移动端触摸
-        const leftZone = document.getElementById('touch-left');
-        const rightZone = document.getElementById('touch-right');
-        const boostBtn = document.getElementById('btn-accelerate');
+        // 移动端摇杆
+        const joystickBase = document.getElementById('joystick-base');
+        const joystickKnob = document.getElementById('joystick-knob');
+        if (joystickBase && joystickKnob) {
+            const JOYSTICK_RADIUS = 55; // knob 能到达 joystickBase 边缘的最大距离（像素）
+            const JOYSTICK_MOVE_RADIUS = 33; // knob 可偏移的最大距离（留下底座）
+            let joystickActive = false;
+            let joystickCenter = { x: 0, y: 0 };
 
-        if (leftZone) {
-            leftZone.addEventListener('touchstart', (e) => { e.preventDefault(); this.input.left = true; });
-            leftZone.addEventListener('touchend', (e) => { e.preventDefault(); this.input.left = false; });
+            const startJoystick = (clientX, clientY) => {
+                const rect = joystickBase.getBoundingClientRect();
+                joystickCenter = {
+                    x: rect.left + rect.width / 2,
+                    y: rect.top + rect.height / 2,
+                };
+                joystickActive = true;
+                joystickBase.classList.add('active');
+                joystickKnob.classList.add('moving');
+                updateJoystick(clientX, clientY);
+            };
+
+            const updateJoystick = (clientX, clientY) => {
+                if (!joystickActive) return;
+                let dx = clientX - joystickCenter.x;
+                let dy = clientY - joystickCenter.y;
+                const dist = Math.hypot(dx, dy);
+                if (dist > JOYSTICK_MOVE_RADIUS) {
+                    const ratio = JOYSTICK_MOVE_RADIUS / dist;
+                    dx *= ratio;
+                    dy *= ratio;
+                }
+                joystickKnob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+                this.input.analogX = dx / JOYSTICK_MOVE_RADIUS; // -1 ~ 1
+                this.input.left = this.input.analogX < -0.15;
+                this.input.right = this.input.analogX > 0.15;
+            };
+
+            const endJoystick = () => {
+                if (!joystickActive) return;
+                joystickActive = false;
+                joystickBase.classList.remove('active');
+                joystickKnob.classList.remove('moving');
+                joystickKnob.style.transform = 'translate(-50%, -50%)';
+                this.input.analogX = 0;
+                this.input.left = false;
+                this.input.right = false;
+            };
+
+            joystickBase.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                startJoystick(touch.clientX, touch.clientY);
+            }, { passive: false });
+
+            joystickBase.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                updateJoystick(touch.clientX, touch.clientY);
+            }, { passive: false });
+
+            // touchend 和 touchcancel 处理文档级，避免手指划出范围丢失事件
+            const handleTouchEnd = (e) => {
+                // 检查是否还有涉及摇杆的触点
+                let stillJoystick = false;
+                for (let i = 0; i < e.touches.length; i++) {
+                    const t = e.touches[i];
+                    const rect = joystickBase.getBoundingClientRect();
+                    if (t.clientX >= rect.left && t.clientX <= rect.right &&
+                        t.clientY >= rect.top && t.clientY <= rect.bottom) {
+                        stillJoystick = true;
+                        break;
+                    }
+                }
+                if (!stillJoystick) endJoystick();
+            };
+            document.addEventListener('touchend', handleTouchEnd);
+            document.addEventListener('touchcancel', handleTouchEnd);
         }
-        if (rightZone) {
-            rightZone.addEventListener('touchstart', (e) => { e.preventDefault(); this.input.right = true; });
-            rightZone.addEventListener('touchend', (e) => { e.preventDefault(); this.input.right = false; });
-        }
+
+        // 加速按钮
+        const boostBtn = document.getElementById('btn-accelerate');
         if (boostBtn) {
             boostBtn.addEventListener('touchstart', (e) => { e.preventDefault(); this.input.boost = true; });
             boostBtn.addEventListener('touchend', (e) => { e.preventDefault(); this.input.boost = false; });
