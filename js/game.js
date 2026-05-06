@@ -228,6 +228,19 @@ class Game {
             case "doublexp":
                 this.player.xpMultiplier = 2.0;
                 break;
+            case "fire_rush":
+                this.player.invincible = true;
+                this.player.currentSpeed = CONSTANTS.MAX_SPEED;
+                break;
+            case "shadow":
+                this.player.invincible = true;
+                break;
+            case "time_stop":
+                this.world.setFrozen(true);
+                break;
+            case "gold_rush":
+                this.player.xpMultiplier = 3.0;
+                break;
         }
 
         if (this.onSkillTrigger) this.onSkillTrigger(skill);
@@ -299,8 +312,8 @@ class Game {
             }
         }
 
-        // 急冻术免疫冰面减速
-        this.input.onIce = this.player.skillId === "freeze" && this.player.skillActive
+        // 急冻术 / 时间凝滞 免疫冰面减速
+        this.input.onIce = (this.player.skillId === "freeze" && this.player.skillActive)
             ? false : this.world.checkIce(this.player);
 
         this.player.boosting = this.input.boost;
