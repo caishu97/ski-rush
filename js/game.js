@@ -347,7 +347,8 @@ class Game {
 
         const kmGained = distMoved / 1000;
         const outfit = CONSTANTS.OUTFITS.find(o => o.id === this.player.outfit.id) || CONSTANTS.OUTFITS[0];
-        const baseXpGain = kmGained * CONSTANTS.XP_PER_KM * outfit.bonus;
+        const trackMultiplier = 1 + (this.selectedTrackLevel - 1) * 0.1; // 赛道等级越高，经验倍率越高
+        const baseXpGain = kmGained * CONSTANTS.XP_PER_KM * outfit.bonus * trackMultiplier;
         const xpGain = baseXpGain * this.player.xpMultiplier;
         this.session.xpEarned += xpGain;
 
