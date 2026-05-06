@@ -125,7 +125,16 @@ class World {
     checkCollision(player, track, effectiveRadius) {
         const radius = effectiveRadius || player.radius * 0.8;
         for (const o of this.obstacles) {
-            const hit = Utils.rectCircleCollide(o.x, o.y, o.width, o.height, player.x, player.y, radius);
+            let hit;
+            if (o.type === 'tree') {
+                // 树的碰撞区域：上移并对齐树干，避免后方提前碰撞
+                const collideY = o.y - o.height * 0.25;
+                const collideW = o.width * 0.7;
+                const collideH = o.height * 0.6;
+                hit = Utils.rectCircleCollide(o.x, collideY, collideW, collideH, player.x, player.y, radius);
+            } else {
+                hit = Utils.rectCircleCollide(o.x, o.y, o.width, o.height, player.x, player.y, radius);
+            }
             if (hit) return true;
         }
         return false;

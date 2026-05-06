@@ -63,7 +63,10 @@
 
 ## 🌐 在线游玩
 
-👉 **https://caishu97.github.io/ski-rush/**
+| 版本 | 链接 | 备注 |
+|------|------|------|
+| **2D 版** | 👉 **https://caishu97.github.io/ski-rush/** | 经典俯视角滑雪 |
+| **伪3D v2 版** | 👉 **https://caishu97.github.io/ski-rush/v2/** | 伪3D 视角，更具沉浸感 |
 
 直接浏览器打开即可，无需安装！
 
