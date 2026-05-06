@@ -7,16 +7,6 @@ const CONSTANTS = {
     CANVAS_WIDTH: 800,
     CANVAS_HEIGHT: 1200,
 
-    // 伪 3D 投影参数
-    PSEUDO_3D: {
-        CAMERA_HEIGHT: 110,        // 摄像机离地面高度（世界单位）
-        CAMERA_DISTANCE: 180,      // 摄像机在玩家后方距离（世界单位）
-        FOCAL_LENGTH: 580,         // 焦距，控制视野宽窄
-        DRAW_DISTANCE: 9000,       // 最大绘制距离
-        SEGMENT_LENGTH: 150,       // 道路分段长度
-        ROAD_TOP_Y_RATIO: 0.38,    // 地平线占屏幕高度比例（相对顶部）
-    },
-
     // 物理参数
     BASE_SPEED: 150,
     MAX_SPEED: 600,
@@ -32,25 +22,25 @@ const CONSTANTS = {
     XP_PER_KM: 1,
     OFFROAD_XP_PENALTY_CD: 10,
 
-    // 障碍尺寸（世界单位）
-    TREE_WIDTH: 34,
-    TREE_HEIGHT: 48,
-    ROCK_WIDTH: 26,
-    ROCK_HEIGHT: 20,
+    // 障碍尺寸
+    TREE_WIDTH: 40,
+    TREE_HEIGHT: 50,
+    ROCK_WIDTH: 30,
+    ROCK_HEIGHT: 24,
 
-    // 滑雪服 — 用 XP 购买
+    // 传奇滑手 — 用 XP 解锁
     OUTFITS: [
-        { id: "default", name: "新手滑雪服", bonus: 1.0,  price: 0,    colorBody: "#e74c3c", colorScarf: "#f1c40f", desc: "普通滑雪服，无加成" },
-        { id: "pro",     name: "专业滑雪服", bonus: 1.3,  price: 100,  colorBody: "#3498db", colorScarf: "#fff",     desc: "+30% 经验加成" },
-        { id: "champ",   name: "冠军滑雪服", bonus: 1.6,  price: 300,  colorBody: "#9b59b6", colorScarf: "#f39c12",  desc: "+60% 经验加成" },
-        { id: "legend",  name: "传说滑雪服", bonus: 2.0,  price: 800,  colorBody: "#1abc9c", colorScarf: "#f39c12",  desc: "+100% 经验加成" },
-        { id: "myth",    name: "神话滑雪服", bonus: 2.5,  price: 1500, colorBody: "#e91e63", colorScarf: "#00e5ff",  desc: "+150% 经验加成" },
-        { id: "star",    name: "星空滑雪服", bonus: 3.0,  price: 3000, colorBody: "#3f51b5", colorScarf: "#ffeb3b",  desc: "+200% 经验加成" },
-        { id: "eternal", name: "永恒滑雪服", bonus: 4.0,  price: 6000, colorBody: "#212121", colorScarf: "#ff5722",  desc: "+300% 经验加成" },
-        { id: "panda",   name: "熊猫滑雪服", bonus: 5.0,  price: 12000, colorBody: "#000000", colorScarf: "#4caf50",  desc: "+400% 经验加成" },
-        { id: "dragon",  name: "神龙滑雪服", bonus: 6.0,  price: 25000, colorBody: "#d32f2f", colorScarf: "#ffd700",  desc: "+500% 经验加成" },
-        { id: "nebula",  name: "星云滑雪服", bonus: 8.0,  price: 50000, colorBody: "#4a148c", colorScarf: "#00bcd4",  desc: "+700% 经验加成" },
-        { id: "void",    name: "虚空滑雪服", bonus: 12.0, price: 99999, colorBody: "#0d0042", colorScarf: "#e040fb",  desc: "+1100% 经验加成" },
+        { id: "default", name: "自由滑手", bonus: 1.0,  price: 0,    colorBody: "#e74c3c", colorScarf: "#f1c40f", desc: "普通滑雪者，无加成" },
+        { id: "eileen_gu", name: "谷爱凌", bonus: 1.3,  price: 100,  colorBody: "#e91e63", colorScarf: "#ffd700", desc: "中国自由式滑雪天才，+30% 经验" },
+        { id: "su_yiming", name: "苏翊鸣", bonus: 1.6,  price: 300,  colorBody: "#1a237e", colorScarf: "#ff5722", desc: "中国单板大跳台奥运冠军，+60% 经验" },
+        { id: "hermann",   name: "Hermann Maier", bonus: 2.0,  price: 800,  colorBody: "#d32f2f", colorScarf: "#fff",     desc: "奥地利速降传奇"Herminator"，+100% 经验" },
+        { id: "lindsey",   name: "Lindsey Vonn", bonus: 2.5,  price: 1500, colorBody: "#1976d2", colorScarf: "#ff9800", desc: "美国女子速降女王，+150% 经验" },
+        { id: "hirscher",  name: "Marcel Hirscher", bonus: 3.0,  price: 3000, colorBody: "#7b1fa2", colorScarf: "#ffeb3b", desc: "奥地利全能王，8届世界杯总冠军，+200% 经验" },
+        { id: "shiffrin",  name: "Mikaela Shiffrin", bonus: 4.0,  price: 6000, colorBody: "#f57c00", colorScarf: "#00bcd4", desc: "美国回转女王，史上最多世界杯胜场，+300% 经验" },
+        { id: "tomba",     name: "Alberto Tomba", bonus: 5.0,  price: 12000, colorBody: "#00695c", colorScarf: "#fff",     desc: "意大利回转之王"La Bomba"，+400% 经验" },
+        { id: "stenmark",  name: "Ingemar Stenmark", bonus: 6.0,  price: 25000, colorBody: "#fdd835", colorScarf: "#004d40", desc: "瑞典回转传奇，86个世界杯冠军，+500% 经验" },
+        { id: "killy",     name: "Jean-Claude Killy", bonus: 8.0,  price: 50000, colorBody: "#1565c0", colorScarf: "#e040fb", desc: "法国三金王，1968冬奥会传奇，+700% 经验" },
+        { id: "bode",      name: "Bode Miller", bonus: 12.0, price: 99999, colorBody: "#212121", colorScarf: "#f44336", desc: "美国天才滑手，最狂野的速降风格，+1100% 经验" },
     ],
 
     // 技能小人（4个基础免费 + 4个高级抽卡限定，每局选择1个携带上场，统一按空格触发）
@@ -185,14 +175,14 @@ const CONSTANTS = {
 
     // 赛道 XP 定价
     TRACKS: [
-        { level: 1, name: "新手雪道",   unlockCost: 0,   desc: "最宽的雪道，障碍稀少，适合入门" },
-        { level: 2, name: "初级雪道",   unlockCost: 100, desc: "宽度略减，树木开始增多" },
-        { level: 3, name: "中级雪道",   unlockCost: 250, desc: "出现少量移动障碍" },
-        { level: 4, name: "高级雪道",   unlockCost: 450, desc: "冰面地带加入，操控更困难" },
-        { level: 5, name: "极限雪道",   unlockCost: 700, desc: "大量移动障碍 + 冰面，难度陡升" },
-        { level: 6, name: "地狱雪道",   unlockCost: 1000, desc: "移动障碍速度加快，冰面密集" },
-        { level: 7, name: "传说雪道",   unlockCost: 1400, desc: "几乎全是移动障碍，极限反应" },
-        { level: 8, name: "神话雪道",   unlockCost: 2000, desc: "最窄雪道，地狱般的速度" },
+        { level: 1, name: "亚布力滑雪场",   unlockCost: 0,    desc: "中国最老牌滑雪场，雪道宽阔，适合入门" },
+        { level: 2, name: "云顶滑雪公园",   unlockCost: 100,  desc: "冬奥会场地，雪质优异，树木开始增多" },
+        { level: 3, name: "二世谷 Niseko",  unlockCost: 250,  desc: "日本粉雪天堂，出现少量移动障碍" },
+        { level: 4, name: "采尔马特 Zermatt", unlockCost: 450, desc: "瑞士马特洪峰下，冰面地带加入，操控更困难" },
+        { level: 5, name: "阿斯彭 Aspen",   unlockCost: 700,  desc: "美国顶级滑雪胜地，大量移动障碍 + 冰面" },
+        { level: 6, name: "霞慕尼 Chamonix", unlockCost: 1000, desc: "法国阿尔卑斯腹地，欧洲极限运动发源地" },
+        { level: 7, name: "基茨比厄尔 Streif", unlockCost: 1400, desc: "奥地利传奇速降赛道，最陡峭危险的赛道" },
+        { level: 8, name: "哈嫩卡姆 Streif",  unlockCost: 2000, desc: " Hahnenkamm 速降之王，滑雪界终极挑战" },
     ],
 
     // 视野与生成

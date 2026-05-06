@@ -59,22 +59,23 @@ class World {
         }
 
         // === 雪花粒子 ===
-        while (this.snowflakes.length < 100) {
+        // 补充满屏幕
+        while (this.snowflakes.length < 80) {
             this.snowflakes.push({
-                x: Utils.rand(-1200, 1200),
-                y: Utils.rand(playerY - CONSTANTS.CANVAS_HEIGHT * 2, playerY + 200),
-                speed: Utils.rand(30, 100),
-                size: Utils.rand(1, 4),
+                x: Utils.rand(-500, 500),
+                y: Utils.rand(playerY - CONSTANTS.CANVAS_HEIGHT, playerY + 200),
+                speed: Utils.rand(30, 80),
+                size: Utils.rand(1, 3),
                 sway: Utils.rand(0, Math.PI * 2),
             });
         }
         for (const s of this.snowflakes) {
             s.y += s.speed * (1 / 60);
-            s.x += Math.sin(s.sway) * 0.6;
-            s.sway += 0.04;
+            s.x += Math.sin(s.sway) * 0.5;
+            s.sway += 0.05;
             if (s.y > despawnBehind) {
                 s.y = spawnAhead;
-                s.x = Utils.rand(-1200, 1200);
+                s.x = Utils.rand(-500, 500);
             }
         }
     }
@@ -89,11 +90,14 @@ class World {
             const h = type === 'tree' ? CONSTANTS.TREE_HEIGHT : CONSTANTS.ROCK_HEIGHT;
             const x = Utils.rand(-halfTrack + 30, halfTrack - 30);
 
+            // 与现有障碍做简单间距检查
             const tooClose = this.obstacles.some(o =>
                 Utils.distSq(o.x, o.y, x, y) < CONSTANTS.OBSTACLE_MIN_GAP * CONSTANTS.OBSTACLE_MIN_GAP
             );
             if (!tooClose) {
                 const obstacle = { x, y, type, width: w, height: h };
+
+                // 移动障碍（使用 track.movingRatio 和 track.movingSpeed）
                 if (track.movingObstacles && Math.random() < track.movingRatio) {
                     obstacle.moving = true;
                     const speed = track.movingSpeed || 40;
@@ -114,15 +118,31 @@ class World {
         }
     }
 
+    /**
+     * 检查玩家是否与障碍碰撞
+     * @param {number} effectiveRadius 有效碰撞半径（幽灵形态时会变小）
+     */
     checkCollision(player, track, effectiveRadius) {
         const radius = effectiveRadius || player.radius * 0.8;
         for (const o of this.obstacles) {
-            const hit = Utils.rectCircleCollide(o.x, o.y, o.width, o.height, player.x, player.y, radius);
+            let hit;
+            if (o.type === 'tree') {
+                // 树的碰撞区域：上移并对齐树干，避免后方提前碰撞
+                const collideY = o.y - o.height * 0.25;
+                const collideW = o.width * 0.7;
+                const collideH = o.height * 0.6;
+                hit = Utils.rectCircleCollide(o.x, collideY, collideW, collideH, player.x, player.y, radius);
+            } else {
+                hit = Utils.rectCircleCollide(o.x, o.y, o.width, o.height, player.x, player.y, radius);
+            }
             if (hit) return true;
         }
         return false;
     }
 
+    /**
+     * 检查玩家是否在冰面上
+     */
     checkIce(player) {
         for (const i of this.icePatches) {
             const halfW = i.width / 2;
@@ -135,258 +155,28 @@ class World {
         return false;
     }
 
-    // ========================= 伪 3D 渲染 =========================
-
-    draw3D(ctx, track, screenW, screenH, camX, camY, playerY, horizonY, player) {
-        const P3 = CONSTANTS.PSEUDO_3D;
-        const segLen = P3.SEGMENT_LENGTH;
-        const halfTrack = track.width / 2;
-        const drawNearY = playerY + P3.CAMERA_DISTANCE + 20;
-        const drawFarY = playerY - P3.DRAW_DISTANCE;
-
-        const farOffset = Math.floor(drawFarY / segLen) * segLen;
-        const nearOffset = Math.floor(drawNearY / segLen) * segLen;
-
-        // 道路交替颜色
-        const roadBase = track.color;
-        const roadAlt = this._darken(roadBase, 6);
-
-        // ---- 1. 由远到近画道路段（ painters algorithm ）----
-        let sy = farOffset;
-        while (sy <= nearOffset) {
-            const segIndex = Math.floor(sy / segLen);
-            const nextSy = sy + segLen;
-
-            // 远边四个角
-            const farL  = Utils.project3D(-halfTrack, sy, screenW, horizonY, camX, camY);
-            const farR  = Utils.project3D( halfTrack, sy, screenW, horizonY, camX, camY);
-            const nearL = Utils.project3D(-halfTrack, nextSy, screenW, horizonY, camX, camY);
-            const nearR = Utils.project3D( halfTrack, nextSy, screenW, horizonY, camX, camY);
-
-            if (farL && nearL) {
-                const isAlt = (segIndex % 2 === 0);
-                const wildColor = isAlt ? '#C9EAF6' : '#BADEF0';
-                const roadColor = isAlt ? roadBase : roadAlt;
-
-                // 两侧野雪（扩展画到屏幕外）
-                this._drawWildSnow(ctx, farL, farR, nearL, nearR, screenW, wildColor);
-
-                // 主雪道梯形
-                ctx.fillStyle = roadColor;
-                ctx.beginPath();
-                ctx.moveTo(farL.sx, farL.sy);
-                ctx.lineTo(farR.sx, farR.sy);
-                ctx.lineTo(nearR.sx, nearR.sy);
-                ctx.lineTo(nearL.sx, nearL.sy);
-                ctx.closePath();
-                ctx.fill();
-
-                // 道路边界虚线（远处更密，近处更稀）
-                if ((segIndex % 3) === 0) {
-                    ctx.strokeStyle = '#8ECAE6';
-                    ctx.lineWidth = Math.max(1, 2 * farL.scale);
-                    ctx.beginPath();
-                    ctx.moveTo(farL.sx, farL.sy);
-                    ctx.lineTo(nearL.sx, nearL.sy);
-                    ctx.stroke();
-                    ctx.beginPath();
-                    ctx.moveTo(farR.sx, farR.sy);
-                    ctx.lineTo(nearR.sx, nearR.sy);
-                    ctx.stroke();
-                }
-
-                // 中心虚线（每5段）
-                if ((segIndex % 5) === 0) {
-                    const farM  = Utils.project3D(0, sy, screenW, horizonY, camX, camY);
-                    const nearM = Utils.project3D(0, nextSy, screenW, horizonY, camX, camY);
-                    if (farM && nearM) {
-                        ctx.strokeStyle = 'rgba(142,202,230,0.6)';
-                        ctx.lineWidth = Math.max(1, 1.5 * farL.scale);
-                        ctx.setLineDash([4, 6]);
-                        ctx.beginPath();
-                        ctx.moveTo(farM.sx, farM.sy);
-                        ctx.lineTo(nearM.sx, nearM.sy);
-                        ctx.stroke();
-                        ctx.setLineDash([]);
-                    }
-                }
-            }
-
-            sy += segLen;
-        }
-
-        // ---- 2. 收集所有可绘制对象并按深度（scale）排序 ----
-        const sprites = [];
-
-        // 冰面
-        for (const i of this.icePatches) {
-            if (i.y < drawFarY || i.y > drawNearY) continue;
-            const proj = Utils.project3D(i.x, i.y, screenW, horizonY, camX, camY);
-            if (!proj) continue;
-            sprites.push({ type: 'ice', proj, data: i });
-        }
-
-        // 障碍
-        for (const o of this.obstacles) {
-            if (o.y < drawFarY || o.y > drawNearY) continue;
-            const proj = Utils.project3D(o.x, o.y, screenW, horizonY, camX, camY);
-            if (!proj) continue;
-            sprites.push({ type: 'obstacle', proj, data: o });
-        }
-
-        // 雪花
-        for (const s of this.snowflakes) {
-            if (s.y < drawFarY || s.y > drawNearY) continue;
-            const proj = Utils.project3D(s.x, s.y, screenW, horizonY, camX, camY);
-            if (!proj) continue;
-            sprites.push({ type: 'snow', proj, data: s });
-        }
-
-        // 由远到近绘制（scale 越大越近）
-        sprites.sort((a, b) => a.proj.scale - b.proj.scale);
-
-        for (const sp of sprites) {
-            if (sp.type === 'ice') {
-                this._drawIce3D(ctx, sp.data, sp.proj);
-            } else if (sp.type === 'obstacle') {
-                this._drawObstacle3D(ctx, sp.data, sp.proj, screenW, horizonY, camX, camY);
-            } else if (sp.type === 'snow') {
-                this._drawSnow3D(ctx, sp.data, sp.proj);
-            }
-        }
-    }
-
-    // 在道路两侧画野雪延伸到屏幕边缘
-    _drawWildSnow(ctx, farL, farR, nearL, nearR, screenW, color) {
-        const extendX = screenW * 3;
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.moveTo(farL.sx, farL.sy);
-        ctx.lineTo(farL.sx - extendX, farL.sy);
-        ctx.lineTo(nearL.sx - extendX, nearL.sy);
-        ctx.lineTo(nearL.sx, nearL.sy);
-        ctx.closePath();
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.moveTo(farR.sx, farR.sy);
-        ctx.lineTo(farR.sx + extendX, farR.sy);
-        ctx.lineTo(nearR.sx + extendX, nearR.sy);
-        ctx.lineTo(nearR.sx, nearR.sy);
-        ctx.closePath();
-        ctx.fill();
-    }
-
-    _drawIce3D(ctx, ice, proj) {
-        const s = proj.scale;
-        ctx.save();
-        ctx.translate(proj.sx, proj.sy);
-        ctx.scale(s, s * 0.35); // 压缩高度，表现地面椭圆
-        ctx.fillStyle = 'rgba(174,214,241,0.55)';
-        ctx.beginPath();
-        ctx.ellipse(0, 0, ice.width / 2, ice.height / 2, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255,255,255,0.45)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.ellipse(-3, -4, ice.width / 3.5, ice.height / 3.5, -0.3, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.restore();
-    }
-
-    _drawObstacle3D(ctx, o, proj, screenW, horizonY, camX, camY) {
-        const P3 = CONSTANTS.PSEUDO_3D;
-        if (o.type === 'tree') {
-            // 树干 + 树冠高度
-            const treeH = 80; // 世界单位中树的总高度
-            const p = Utils.project3DWithHeight(o.x, o.y, treeH, screenW, horizonY, camX, camY);
-            if (!p) return;
-            const s = p.scale;
-
-            ctx.save();
-            // 树干（梯形）
-            const trunkW = 10 * s;
-            const trunkH = (p.syGround - p.syTop) * 0.22;
-            ctx.fillStyle = '#5D4037';
-            ctx.beginPath();
-            ctx.moveTo(p.sx - trunkW * 0.4, p.syTop + (p.syGround - p.syTop) * 0.78);
-            ctx.lineTo(p.sx + trunkW * 0.4, p.syTop + (p.syGround - p.syTop) * 0.78);
-            ctx.lineTo(p.sx + trunkW * 0.25, p.syGround);
-            ctx.lineTo(p.sx - trunkW * 0.25, p.syGround);
-            ctx.closePath();
-            ctx.fill();
-
-            // 树冠三层三角形，随透视缩放在屏幕坐标上
-            const topY = p.syTop;
-            const bottomY = p.syTop + (p.syGround - p.syTop) * 0.8;
-            const midY1 = p.syTop + (p.syGround - p.syTop) * 0.32;
-            const midY2 = p.syTop + (p.syGround - p.syTop) * 0.58;
-            const cw1 = 30 * s;
-            const cw2 = 22 * s;
-            const cw3 = 14 * s;
-
-            const colors = ['#388E3C', '#2E7D32', '#1B5E20'];
-            const widths = [cw1, cw2, cw3];
-            const ys = [midY1, midY2, topY + (bottomY - topY) * 0.08];
-
-            for (let i = 0; i < 3; i++) {
-                ctx.fillStyle = colors[i];
-                const yy = ys[i];
-                const hh = (bottomY - topY) * 0.3;
-                ctx.beginPath();
-                ctx.moveTo(p.sx, yy - hh * 0.55);
-                ctx.lineTo(p.sx - widths[i], yy + hh * 0.45);
-                ctx.lineTo(p.sx + widths[i], yy + hh * 0.45);
-                ctx.closePath();
-                ctx.fill();
-            }
-
-            // 雪顶
-            ctx.fillStyle = 'white';
-            ctx.beginPath();
-            ctx.moveTo(p.sx, topY);
-            ctx.lineTo(p.sx - 10 * s, topY + 6 * s);
-            ctx.lineTo(p.sx + 10 * s, topY + 6 * s);
-            ctx.closePath();
-            ctx.fill();
-            ctx.restore();
-        } else if (o.type === 'rock') {
-            const s = proj.scale;
-            ctx.save();
-            ctx.translate(proj.sx, proj.sy);
-            ctx.scale(s, s * 0.35);
-            ctx.fillStyle = '#78909C';
-            ctx.beginPath();
-            ctx.ellipse(0, 0, o.width / 2, o.height / 2, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#90A4AE';
-            ctx.beginPath();
-            ctx.ellipse(-3, -3, o.width / 3.5, o.height / 3.5, -0.3, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-        }
-    }
-
-    _drawSnow3D(ctx, s, proj) {
-        // 雪花不要压扁，保持圆润
-        ctx.fillStyle = 'rgba(255,255,255,0.85)';
-        ctx.beginPath();
-        ctx.arc(proj.sx, proj.sy, s.size * proj.scale * 1.5, 0, Math.PI * 2);
-        ctx.fill();
-    }
-
+    /**
+     * 绘制世界（世界坐标）
+     * @param {number} playerY 玩家当前世界Y坐标（用于雪花和冰面的视锥剔除）
+     */
     draw(ctx, track, screenW, screenH, playerY) {
-        // 保留旧 2D 方法（菜单预览等可能用到）
+        // === 雪道背景 ===
         const halfTrack = track.width / 2;
+        // 由于 ctx 已经被 translate 到玩家为中心，这里用相对于玩家的坐标
+        // 将背景范围扩大，避免任何极端情况下露底
         const viewTop = -screenH * 2.0;
         const viewBottom = screenH * 2.5;
         const viewHeight = viewBottom - viewTop;
 
+        // 两侧野雪 — 横向足够大
         ctx.fillStyle = "#d0e8f2";
         ctx.fillRect(-screenW * 4, viewTop, screenW * 8, viewHeight);
+
+        // 主雪道（稍白）
         ctx.fillStyle = track.color;
         ctx.fillRect(-halfTrack - 4, viewTop, (halfTrack + 4) * 2, viewHeight);
 
+        // 雪道边界线
         ctx.strokeStyle = "#aed6f1";
         ctx.lineWidth = 3;
         ctx.setLineDash([20, 15]);
@@ -400,14 +190,18 @@ class World {
         ctx.stroke();
         ctx.setLineDash([]);
 
+        // === 冰面 ===
         for (const i of this.icePatches) {
+            // 视锥剔除：相对于玩家的位置
             const relY = i.y - playerY;
             if (relY > screenH || relY < -screenH) continue;
+
             ctx.save();
             ctx.fillStyle = "rgba(174, 214, 241, 0.5)";
             ctx.beginPath();
             ctx.ellipse(i.x, i.y, i.width / 2, i.height / 2, 0, 0, Math.PI * 2);
             ctx.fill();
+            // 反光
             ctx.strokeStyle = "rgba(255,255,255,0.6)";
             ctx.lineWidth = 2;
             ctx.beginPath();
@@ -416,15 +210,20 @@ class World {
             ctx.restore();
         }
 
-        const visibleObs = this.obstacles.filter(o => {
-            const relY = o.y - playerY;
-            return relY > -screenH && relY < screenH;
-        });
+        // === 障碍 ===
+        // 按 Y 排序，实现正确遮挡
+        const visibleObs = this.obstacles
+            .filter(o => {
+                const relY = o.y - playerY;
+                return relY > -screenH && relY < screenH;
+            });
         visibleObs.sort((a, b) => a.y - b.y);
+
         for (const o of visibleObs) {
-            this._drawObstacle2D(ctx, o.x, o.y, o);
+            this._drawObstacle(ctx, o.x, o.y, o);
         }
 
+        // === 雪花 ===
         ctx.fillStyle = "rgba(255,255,255,0.8)";
         for (const s of this.snowflakes) {
             const relY = s.y - playerY;
@@ -435,10 +234,12 @@ class World {
         }
     }
 
-    _drawObstacle2D(ctx, x, y, o) {
+    _drawObstacle(ctx, x, y, o) {
         if (o.type === 'tree') {
+            // 树干
             ctx.fillStyle = "#6d4c41";
             ctx.fillRect(x - 5, y - 5, 10, 15);
+            // 树冠（三层三角形）
             const colors = ["#2ecc71", "#27ae60", "#1e8449"];
             const sizes = [28, 22, 16];
             const offsets = [-22, -30, -36];
@@ -451,6 +252,7 @@ class World {
                 ctx.closePath();
                 ctx.fill();
             }
+            // 雪顶
             ctx.fillStyle = "white";
             ctx.beginPath();
             ctx.moveTo(x, y - 38);
@@ -459,26 +261,16 @@ class World {
             ctx.closePath();
             ctx.fill();
         } else if (o.type === 'rock') {
+            // 石头
             ctx.fillStyle = "#7f8c8d";
             ctx.beginPath();
             ctx.ellipse(x, y + 2, o.width / 2, o.height / 2, 0, 0, Math.PI * 2);
             ctx.fill();
+            // 高光
             ctx.fillStyle = "#95a5a6";
             ctx.beginPath();
             ctx.ellipse(x - 3, y - 2, o.width / 3.5, o.height / 3.5, -0.3, 0, Math.PI * 2);
             ctx.fill();
         }
-    }
-
-    _darken(hexColor, amount) {
-        const hex = hexColor.replace('#', '');
-        let r = parseInt(hex.substring(0, 2), 16);
-        let g = parseInt(hex.substring(2, 4), 16);
-        let b = parseInt(hex.substring(4, 6), 16);
-        r = Math.max(0, r - amount);
-        g = Math.max(0, g - amount);
-        b = Math.max(0, b - amount);
-        const toHex = (n) => n.toString(16).padStart(2, '0');
-        return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
     }
 }
